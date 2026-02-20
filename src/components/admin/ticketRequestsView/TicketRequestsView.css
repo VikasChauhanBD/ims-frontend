@@ -1,0 +1,72 @@
+.ticket-requests-container {
+  padding: 20px;
+}
+
+.ticket-heading {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.ticket-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.ticket-card {
+  background: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.ticket-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.ticket-description {
+  margin: 12px 0;
+  color: #555;
+}
+
+.ticket-status {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.status-approved {
+  color: #4caf50;
+}
+.status-rejected {
+  color: #f44336;
+}
+.status-open {
+  color: #ff9800;
+}
+
+.ticket-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.btn-approve {
+  background: #4caf50;
+  padding: 8px 14px;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-reject {
+  background: #f44336;
+  padding: 8px 14px;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  border: none;
+}
