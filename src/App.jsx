@@ -105,6 +105,7 @@ function App() {
             <Route path="tickets" element={null} />
             <Route path="mydevices" element={null} />
             <Route path="requesthistory" element={null} />
+            <Route path="overdue" element={null} />
           </Route>
 
           {/* Admin nested routes */}

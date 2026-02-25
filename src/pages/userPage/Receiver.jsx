@@ -1,11 +1,18 @@
 import { useState, useMemo } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { Package, TicketCheck, Monitor, ClipboardList } from "lucide-react";
+import {
+  Package,
+  TicketCheck,
+  Monitor,
+  ClipboardList,
+  AlarmClock,
+} from "lucide-react";
 import Navbar from "../../components/navbar/Navbar";
 import UserDevicesView from "../../components/user/userDevices/UserDevicesView";
 import MyTicketsView from "../../components/user/userTicket/MyTicketsView";
 import MyDevices from "../../components/user/myDevices/MyDevices";
 import RequestHistory from "../../components/user/requestHistory/RequestHistory";
+import OverDueItems from "../../components/user/overDueItems/OverDueItems";
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
 import {
   mockDevices,
@@ -73,6 +80,7 @@ function Receiver() {
     { id: "tickets", label: "My Tickets", icon: TicketCheck },
     { id: "mydevices", label: "My Devices", icon: Monitor },
     { id: "requesthistory", label: "Request History", icon: ClipboardList },
+    { id: "overdue", label: "Return Due", icon: AlarmClock },
   ];
 
   return (
@@ -118,6 +126,8 @@ function Receiver() {
         {activeTab === "mydevices" && <MyDevices />}
 
         {activeTab === "requesthistory" && <RequestHistory />}
+
+        {activeTab === "overdue" && <OverDueItems />}
       </div>
 
       {/* Required by React Router for nested routes */}
