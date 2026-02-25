@@ -22,17 +22,25 @@
 }
 
 .assignments-stat-card {
-  background-color: #fff;
-  border: 1px solid #f3f4f6;
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: transparent;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+  padding: 1rem;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  transition: all 0.3s ease;
+}
+
+.assignments-stat-card:hover {
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
+  transform: translateY(-5px);
 }
 
 .assignments-stat-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #6b7280;
+  color: #383838;
   margin-bottom: 0.25rem;
 }
 
@@ -122,12 +130,16 @@
 }
 
 .assignments-footer {
-  background-color: #ffffff;
-  border: 1px solid #ebf0f8;
-  border-radius: 0.75rem;
+  background: transparent;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
   padding: 1rem;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  transition: all 0.3s ease;
   text-align: center;
-  color: #6b7280;
+  color: #4c4c4d;
   font-size: 0.875rem;
   margin-bottom: 2rem;
 }

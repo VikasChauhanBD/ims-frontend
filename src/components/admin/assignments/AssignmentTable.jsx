@@ -8,7 +8,7 @@ export default function AssignmentTable({ assignments = [], onReturn }) {
     const start = new Date(assignedDate);
     const end = returnedDate ? new Date(returnedDate) : new Date();
     const days = Math.floor(
-      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
     );
     return days;
   };
@@ -81,7 +81,7 @@ export default function AssignmentTable({ assignments = [], onReturn }) {
                     <Clock className="assignments-duration-icon" />
                     {calculateDays(
                       assignment.assigned_date,
-                      assignment.returned_date
+                      assignment.returned_date,
                     )}{" "}
                     days
                   </div>
@@ -98,17 +98,6 @@ export default function AssignmentTable({ assignments = [], onReturn }) {
                     {assignment.status.charAt(0).toUpperCase() +
                       assignment.status.slice(1)}
                   </span>
-                </td>
-
-                <td>
-                  {assignment.status === "active" && onReturn && (
-                    <button
-                      onClick={() => onReturn(assignment.id)}
-                      className="assignments-return-btn"
-                    >
-                      Return
-                    </button>
-                  )}
                 </td>
               </tr>
             ))}

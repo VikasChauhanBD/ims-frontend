@@ -1,8 +1,11 @@
 .assignments-table-container {
-  background-color: #fff;
-  border: 1px solid #f3f4f6;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: transparent;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  transition: all 0.3s ease;
   overflow: hidden;
 }
 
@@ -32,12 +35,13 @@
 }
 
 .assignments-table-row {
+  background: transparent;
   border-bottom: 1px solid #f3f4f6;
   transition: background-color 0.2s ease-in-out;
 }
 
 .assignments-table-row:hover {
-  background-color: #f9fafb;
+  background-color: rgba(255, 255, 255, 0.342);
 }
 
 .assignments-table-row td {
@@ -94,7 +98,7 @@
 
 .assignments-employee-department {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: #424242;
 }
 
 /* Date & Duration */
@@ -103,7 +107,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #4b5563;
+  color: #424242;
   font-size: 0.875rem;
 }
 
@@ -111,7 +115,7 @@
 .assignments-duration-icon {
   width: 1rem;
   height: 1rem;
-  color: #9ca3af;
+  color: #424242;
 }
 
 /* Status Badges */
@@ -130,32 +134,19 @@
 
 .assignments-status-returned {
   background-color: #f3f4f6;
-  color: #374151;
-}
-
-/* Button */
-.assignments-return-btn {
-  background: none;
-  border: none;
-  color: #2563eb;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 0.2s ease-in-out;
-}
-
-.assignments-return-btn:hover {
-  color: #1e40af;
+  color: #424242;
 }
 
 /* Empty State */
 .no-assignments-container {
-  background-color: #fff;
-  border: 1px solid #f3f4f6;
-  border-radius: 0.75rem;
-  text-align: center;
-  padding: 3rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: transparent;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
 
 .no-assignments-icon {

@@ -49,15 +49,6 @@ export default function EmployeeCard({
           </span>
         </div>
       </div>
-
-      {onViewDetails && (
-        <button
-          className="btn-view-details"
-          onClick={() => onViewDetails(employee)}
-        >
-          View Details
-        </button>
-      )}
     </div>
   );
 }

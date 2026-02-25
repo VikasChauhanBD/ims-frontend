@@ -1,13 +1,17 @@
 .employee-card {
-  background-color: #fff;
-  border: 1px solid #f3f4f6;
-  border-radius: 1rem;
-  padding: 1.5rem;
-  transition: box-shadow 0.2s;
+  background: transparent;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+  padding: 1rem;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  transition: all 0.3s ease;
 }
 
 .employee-card:hover {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
+  transform: translateY(-5px);
 }
 
 .employee-card-header {
@@ -85,7 +89,7 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: #464646;
 }
 
 .employee-detail-icon {
@@ -97,7 +101,7 @@
 .btn-view-details {
   width: 100%;
   background-color: #f3f4f6;
-  color: #374151;
+  color: #383a3d;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   font-size: 0.875rem;
