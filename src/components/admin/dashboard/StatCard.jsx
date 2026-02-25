@@ -8,9 +8,13 @@ export default function StatCard({
   color,
   bgColor,
   subtitle,
+  onClick,
 }) {
   return (
-    <div className="stat-card">
+    <div
+      className={`stat-card ${onClick ? "stat-card-clickable" : ""}`}
+      onClick={onClick}
+    >
       <div className="stat-card-content">
         <div className="stat-card-info">
           <p className="stat-title">{title}</p>

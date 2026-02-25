@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Laptop,
   Smartphone,
@@ -11,6 +12,8 @@ import StatCard from "./StatCard";
 import "./Dashboard.css";
 
 export default function Dashboard({ stats }) {
+  const navigate = useNavigate();
+
   return (
     <div className="dashboard-main-container">
       <div className="dashboard-header">
@@ -28,6 +31,7 @@ export default function Dashboard({ stats }) {
           color="text-blue"
           bgColor="bg-blue"
           subtitle={`${stats.totalPhones} Phones, ${stats.totalLaptops} Laptops`}
+          onClick={() => navigate("/admin/devices")}
         />
         <StatCard
           title="Assigned Devices"
@@ -36,17 +40,19 @@ export default function Dashboard({ stats }) {
           color="text-green"
           bgColor="bg-green"
           subtitle={`${Math.round(
-            (stats.assignedDevices / stats.totalDevices) * 100
+            (stats.assignedDevices / stats.totalDevices) * 100,
           )}% Utilization`}
+          onClick={() => navigate("/admin/assignments")}
         />
-        <StatCard
+        {/* <StatCard
           title="Available Devices"
           value={stats.availableDevices}
           icon={Package}
           color="text-teal"
           bgColor="bg-teal"
           subtitle="Ready to assign"
-        />
+          onClick={() => navigate("/admin/devices")}
+        /> */}
         <StatCard
           title="Active Employees"
           value={stats.activeEmployees}
@@ -54,6 +60,7 @@ export default function Dashboard({ stats }) {
           color="text-purple"
           bgColor="bg-purple"
           subtitle={`${stats.totalEmployees} Total`}
+          onClick={() => navigate("/admin/employees")}
         />
       </div>
 
@@ -75,9 +82,7 @@ export default function Dashboard({ stats }) {
                 <div
                   className="progress-bar-blue"
                   style={{
-                    width: `${
-                      (stats.totalLaptops / stats.totalDevices) * 100
-                    }%`,
+                    width: `${(stats.totalLaptops / stats.totalDevices) * 100}%`,
                   }}
                 ></div>
               </div>
@@ -121,9 +126,7 @@ export default function Dashboard({ stats }) {
                 <div
                   className="progress-bar-green"
                   style={{
-                    width: `${
-                      (stats.assignedDevices / stats.totalDevices) * 100
-                    }%`,
+                    width: `${(stats.assignedDevices / stats.totalDevices) * 100}%`,
                   }}
                 ></div>
               </div>
@@ -142,9 +145,7 @@ export default function Dashboard({ stats }) {
                 <div
                   className="progress-bar-teal"
                   style={{
-                    width: `${
-                      (stats.availableDevices / stats.totalDevices) * 100
-                    }%`,
+                    width: `${(stats.availableDevices / stats.totalDevices) * 100}%`,
                   }}
                 ></div>
               </div>
@@ -163,9 +164,7 @@ export default function Dashboard({ stats }) {
                 <div
                   className="progress-bar-yellow"
                   style={{
-                    width: `${
-                      (stats.maintenanceDevices / stats.totalDevices) * 100
-                    }%`,
+                    width: `${(stats.maintenanceDevices / stats.totalDevices) * 100}%`,
                   }}
                 ></div>
               </div>
