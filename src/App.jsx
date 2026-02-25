@@ -106,6 +106,7 @@ function App() {
             <Route path="mydevices" element={null} />
             <Route path="requesthistory" element={null} />
             <Route path="overdue" element={null} />
+            <Route path="reportissue" element={null} />
           </Route>
 
           {/* Admin nested routes */}
