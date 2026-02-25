@@ -1,22 +1,3 @@
-// import { useState } from "react";
-// import "./App.css";
-// import { BrowserRouter, Routes, Route } from "react-router-dom";
-// import Admin from "./pages/Admin";
-// import Receiver from "./pages/Receiver";
-
-// function App() {
-//   return (
-//     <BrowserRouter>
-//       <Routes>
-//         <Route path="/" element={<Receiver />} />
-//         <Route path="/admin" element={<Admin />} />
-//       </Routes>
-//     </BrowserRouter>
-//   );
-// }
-
-// export default App;
-
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./AuthContext/AuthContext";
 import Login from "./pages/loginPage/Login";
@@ -30,18 +11,15 @@ import EmployeeProfile from "./pages/profile/EmployeeProfile";
 // Protected Route
 function ProtectedRoute({ children, adminOnly = false }) {
   const { isAuthenticated, loading, user } = useAuth();
-
   if (loading) return <div>Loading...</div>;
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (adminOnly && user?.role !== "admin") return <Navigate to="/" />;
-
   return children;
 }
 
 // Public Route (redirect if logged in)
 function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
-
   if (loading) return <div>Loading...</div>;
   return !isAuthenticated ? children : <Navigate to="/" />;
 }
@@ -81,6 +59,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Admin nested routes */}
           <Route
             path="/admin"
             element={
@@ -88,7 +68,14 @@ function App() {
                 <Admin />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={null} />
+            <Route path="devices" element={null} />
+            <Route path="employees" element={null} />
+            <Route path="assignments" element={null} />
+            <Route path="ticketrequests" element={null} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </AuthProvider>

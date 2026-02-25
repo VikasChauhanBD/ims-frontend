@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
   LayoutDashboard,
   Package,
@@ -22,11 +23,17 @@ import {
 import "./Admin.css";
 
 function Admin() {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Derive activeTab from the current URL
+  const activeTab = location.pathname.split("/admin/")[1] || "dashboard";
+
   const [devices] = useState(mockDevices);
   const [employees] = useState(mockEmployees);
   const [assignments] = useState(mockAssignments);
   const [tickets, setTickets] = useState(mockTickets);
+
   const stats = useMemo(() => {
     const totalDevices = devices.length;
     const assignedDevices = devices.filter(
@@ -97,7 +104,7 @@ function Admin() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => navigate(`/admin/${tab.id}`)}
                 className={`admin-tab-button ${
                   activeTab === tab.id ? "active-tab" : "inactive-tab"
                 }`}
@@ -146,6 +153,9 @@ function Admin() {
           />
         )}
       </div>
+
+      {/* Required by React Router for nested routes */}
+      <Outlet />
     </div>
   );
 }
