@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { Calendar, Package, AlertCircle } from "lucide-react";
 import "./DeviceCard.css";
 
@@ -25,14 +26,6 @@ export default function DeviceCard({ device, onAssign, onEdit, assignedTo }) {
       onEdit(editDevice);
     }
     setShowEditModal(false);
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const imageURL = URL.createObjectURL(file);
-      setEditDevice({ ...editDevice, image: imageURL });
-    }
   };
 
   return (
@@ -102,151 +95,162 @@ export default function DeviceCard({ device, onAssign, onEdit, assignedTo }) {
         </button>
       </div>
 
-      {/* ---------------- Edit Modal ---------------- */}
-      {showEditModal && (
-        <div className="device-modal-overlay">
-          <div className="device-modal-box">
-            <div className="device-modal-header">
-              <h2>Edit Device</h2>
-              <span
-                className="close-icon"
-                onClick={() => setShowEditModal(false)}
-              >
-                ✕
-              </span>
-            </div>
+      {/* Modal rendered via portal directly into document.body,
+          bypassing the card's stacking context entirely */}
+      {showEditModal &&
+        createPortal(
+          <div
+            className="device-modal-overlay"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowEditModal(false);
+            }}
+          >
+            <div className="device-modal-box">
+              <div className="device-modal-header">
+                <h2>Edit Device</h2>
+                <span
+                  className="close-icon"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  ✕
+                </span>
+              </div>
 
-            <div className="device-modal-body">
-              <label>Device Type</label>
-              <select
-                value={editDevice.device_type}
-                onChange={(e) =>
-                  setEditDevice({ ...editDevice, device_type: e.target.value })
-                }
-              >
-                <option value="phone">Phone</option>
-                <option value="laptop">Laptop</option>
-              </select>
-
-              <label>Brand</label>
-              <input
-                type="text"
-                value={editDevice.brand}
-                onChange={(e) =>
-                  setEditDevice({ ...editDevice, brand: e.target.value })
-                }
-              />
-
-              <label>Model</label>
-              <input
-                type="text"
-                value={editDevice.model}
-                onChange={(e) =>
-                  setEditDevice({ ...editDevice, model: e.target.value })
-                }
-              />
-
-              <label>Serial Number</label>
-              <input
-                type="text"
-                value={editDevice.serial_number}
-                onChange={(e) =>
-                  setEditDevice({
-                    ...editDevice,
-                    serial_number: e.target.value,
-                  })
-                }
-              />
-
-              <label>Purchase Date</label>
-              <input
-                type="date"
-                value={editDevice.purchase_date}
-                onChange={(e) =>
-                  setEditDevice({
-                    ...editDevice,
-                    purchase_date: e.target.value,
-                  })
-                }
-              />
-
-              <label>Status</label>
-              <select
-                value={editDevice.status}
-                onChange={(e) =>
-                  setEditDevice({ ...editDevice, status: e.target.value })
-                }
-              >
-                <option value="available">Available</option>
-                <option value="assigned">Assigned</option>
-                <option value="maintenance">Maintenance</option>
-                <option value="retired">Retired</option>
-              </select>
-
-              <label>Condition</label>
-              <select
-                value={editDevice.condition}
-                onChange={(e) =>
-                  setEditDevice({ ...editDevice, condition: e.target.value })
-                }
-              >
-                <option value="excellent">Excellent</option>
-                <option value="good">Good</option>
-                <option value="fair">Fair</option>
-                <option value="poor">Poor</option>
-              </select>
-
-              <label>Notes</label>
-              <input
-                type="text"
-                value={editDevice.notes}
-                onChange={(e) =>
-                  setEditDevice({ ...editDevice, notes: e.target.value })
-                }
-              />
-
-              <label>Upload Image</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (file) {
-                    const imageURL = URL.createObjectURL(file);
-                    setEditDevice({ ...editDevice, image: imageURL });
+              <div className="device-modal-body">
+                <label>Device Type</label>
+                <select
+                  value={editDevice.device_type}
+                  onChange={(e) =>
+                    setEditDevice({
+                      ...editDevice,
+                      device_type: e.target.value,
+                    })
                   }
-                }}
-              />
+                >
+                  <option value="phone">Phone</option>
+                  <option value="laptop">Laptop</option>
+                </select>
 
-              {editDevice.image && (
-                <img
-                  src={editDevice.image}
-                  alt="Preview"
-                  style={{
-                    marginTop: "10px",
-                    width: "100%",
-                    borderRadius: "8px",
-                    maxHeight: "150px",
-                    objectFit: "cover",
+                <label>Brand</label>
+                <input
+                  type="text"
+                  value={editDevice.brand}
+                  onChange={(e) =>
+                    setEditDevice({ ...editDevice, brand: e.target.value })
+                  }
+                />
+
+                <label>Model</label>
+                <input
+                  type="text"
+                  value={editDevice.model}
+                  onChange={(e) =>
+                    setEditDevice({ ...editDevice, model: e.target.value })
+                  }
+                />
+
+                <label>Serial Number</label>
+                <input
+                  type="text"
+                  value={editDevice.serial_number}
+                  onChange={(e) =>
+                    setEditDevice({
+                      ...editDevice,
+                      serial_number: e.target.value,
+                    })
+                  }
+                />
+
+                <label>Purchase Date</label>
+                <input
+                  type="date"
+                  value={editDevice.purchase_date}
+                  onChange={(e) =>
+                    setEditDevice({
+                      ...editDevice,
+                      purchase_date: e.target.value,
+                    })
+                  }
+                />
+
+                <label>Status</label>
+                <select
+                  value={editDevice.status}
+                  onChange={(e) =>
+                    setEditDevice({ ...editDevice, status: e.target.value })
+                  }
+                >
+                  <option value="available">Available</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="retired">Retired</option>
+                </select>
+
+                <label>Condition</label>
+                <select
+                  value={editDevice.condition}
+                  onChange={(e) =>
+                    setEditDevice({ ...editDevice, condition: e.target.value })
+                  }
+                >
+                  <option value="excellent">Excellent</option>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                  <option value="poor">Poor</option>
+                </select>
+
+                <label>Notes</label>
+                <input
+                  type="text"
+                  value={editDevice.notes}
+                  onChange={(e) =>
+                    setEditDevice({ ...editDevice, notes: e.target.value })
+                  }
+                />
+
+                <label>Upload Image</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const imageURL = URL.createObjectURL(file);
+                      setEditDevice({ ...editDevice, image: imageURL });
+                    }
                   }}
                 />
-              )}
-            </div>
 
-            <div className="device-modal-actions">
-              <button
-                className="btn-cancel"
-                onClick={() => setShowEditModal(false)}
-              >
-                Cancel
-              </button>
-              <button className="btn-submit" onClick={handleSaveEdit}>
-                Save
-              </button>
+                {editDevice.image && (
+                  <img
+                    src={editDevice.image}
+                    alt="Preview"
+                    style={{
+                      marginTop: "10px",
+                      width: "100%",
+                      borderRadius: "8px",
+                      maxHeight: "150px",
+                      objectFit: "cover",
+                    }}
+                  />
+                )}
+              </div>
+
+              <div className="device-modal-actions">
+                <button
+                  className="device-btn-cancel"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  Cancel
+                </button>
+                <button className="device-btn-submit" onClick={handleSaveEdit}>
+                  Save
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
