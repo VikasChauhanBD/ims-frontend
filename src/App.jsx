@@ -8,13 +8,14 @@ import Admin from "./pages/adminPage/Admin";
 import Receiver from "./pages/userPage/Receiver";
 import EmployeeProfile from "./components/user/profile/EmployeeProfile";
 import AdminProfile from "./components/admin/profile/AdminProfile";
+import "./App.css";
 
 // Protected Route
 function ProtectedRoute({ children, adminOnly = false }) {
   const { isAuthenticated, loading, user } = useAuth();
   if (loading) return <div>Loading...</div>;
   if (!isAuthenticated) return <Navigate to="/login" />;
-  if (adminOnly && user?.role !== "admin") return <Navigate to="/receiver" />;
+  if (adminOnly && user?.role !== "admin") return <Navigate to="/devices" />;
   return children;
 }
 
@@ -40,7 +41,7 @@ function AdminOnlyRoute({ children }) {
 function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
   if (loading) return <div>Loading...</div>;
-  return !isAuthenticated ? children : <Navigate to="/receiver" />;
+  return !isAuthenticated ? children : <Navigate to="/devices" />;
 }
 
 function App() {
@@ -48,7 +49,6 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public routes */}
           <Route
             path="/login"
             element={
@@ -68,7 +68,6 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* User profile - logged-in non-admin users only */}
           <Route
             path="/profile"
             element={
@@ -78,7 +77,6 @@ function App() {
             }
           />
 
-          {/* Admin profile - logged-in admin users only */}
           <Route
             path="/admin/profile"
             element={
@@ -88,19 +86,15 @@ function App() {
             }
           />
 
-          {/* Redirect root to receiver */}
-          <Route path="/" element={<Navigate to="/receiver" replace />} />
-
-          {/* Receiver nested routes */}
+          <Route path="/" element={<Navigate to="/devices" replace />} />
           <Route
-            path="/receiver"
+            path="/"
             element={
               <ProtectedRoute>
                 <Receiver />
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="devices" replace />} />
             <Route path="devices" element={null} />
             <Route path="tickets" element={null} />
             <Route path="mydevices" element={null} />
@@ -109,7 +103,6 @@ function App() {
             <Route path="reportissue" element={null} />
           </Route>
 
-          {/* Admin nested routes */}
           <Route
             path="/admin"
             element={

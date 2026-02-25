@@ -28,8 +28,8 @@ function Receiver() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Derive activeTab from the current URL
-  const activeTab = location.pathname.split("/receiver/")[1] || "devices";
+  // Derive activeTab from the flat URL path e.g. /devices → "devices"
+  const activeTab = location.pathname.replace("/", "") || "devices";
 
   const [devices] = useState(mockDevices);
   const [employees] = useState(mockEmployees);
@@ -99,7 +99,7 @@ function Receiver() {
             return (
               <button
                 key={tab.id}
-                onClick={() => navigate(`/receiver/${tab.id}`)}
+                onClick={() => navigate(`/${tab.id}`)}
                 className={`receiver-tab-button ${
                   activeTab === tab.id ? "active-tab" : "inactive-tab"
                 }`}
