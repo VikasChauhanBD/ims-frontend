@@ -1,0 +1,272 @@
+/* Content Section */
+.rh-content-section {
+  animation: rhSlideIn 0.4s ease-out;
+}
+
+@keyframes rhSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.rh-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--neutral-200);
+}
+
+.rh-section-header h2 {
+  font-family: "Clash Display", sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--neutral-900);
+  letter-spacing: -0.01em;
+}
+
+/* Filter Chips */
+.rh-filter-chips {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.rh-filter-chip {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.rh-filter-chip.approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.rh-filter-chip.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.rh-filter-chip.declined {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Tickets List */
+.rh-tickets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.rh-ticket-card {
+  background: transparent;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.rh-ticket-card:hover {
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
+  transform: translateY(-5px);
+}
+
+.rh-ticket-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+
+.rh-ticket-left {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.rh-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.rh-status-approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.rh-status-approved .rh-ticket-card::before {
+  background: var(--success);
+}
+
+.rh-status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.rh-status-pending .rh-ticket-card::before {
+  background: var(--warning);
+}
+
+.rh-status-declined {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.rh-status-declined .rh-ticket-card::before {
+  background: var(--danger);
+}
+
+.rh-status-icon {
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.rh-ticket-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.rh-ticket-id {
+  font-family: "SF Mono", "Monaco", monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--neutral-900);
+  letter-spacing: -0.01em;
+}
+
+.rh-ticket-type {
+  font-size: 0.85rem;
+  color: var(--neutral-600);
+  font-weight: 500;
+}
+
+.rh-ticket-item {
+  font-size: 1rem;
+  color: var(--neutral-800);
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
+.rh-ticket-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.rh-ticket-dates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.rh-date-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.rh-date-label {
+  font-size: 0.75rem;
+  color: var(--neutral-500);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rh-date-value {
+  font-size: 0.9rem;
+  color: var(--neutral-700);
+  font-weight: 600;
+  font-family: "SF Mono", "Monaco", monospace;
+}
+
+.rh-ticket-notes {
+  background: var(--neutral-50);
+  padding: 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--neutral-700);
+  border-left: 3px solid var(--neutral-300);
+}
+
+.rh-notes-label {
+  font-weight: 700;
+  color: var(--neutral-800);
+  margin-right: 0.5rem;
+}
+
+.rh-notes-text {
+  font-weight: 500;
+}
+
+.rh-reviewer {
+  color: var(--neutral-600);
+  font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .rh-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .rh-filter-chips {
+    flex-wrap: wrap;
+  }
+
+  .rh-ticket-main {
+    flex-direction: column;
+  }
+
+  .rh-ticket-right {
+    align-items: flex-start;
+  }
+
+  .rh-ticket-dates {
+    align-items: flex-start;
+  }
+
+  .rh-date-item {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .rh-ticket-card {
+    padding: 1.25rem;
+  }
+
+  .rh-ticket-left {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}

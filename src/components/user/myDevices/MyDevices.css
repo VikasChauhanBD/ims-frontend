@@ -1,0 +1,163 @@
+/* Content Section */
+.md-content-section {
+  animation: mdSlideIn 0.4s ease-out;
+}
+
+@keyframes mdSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.md-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--neutral-200);
+}
+
+.md-section-header h2 {
+  font-family: "Clash Display", sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--neutral-900);
+  letter-spacing: -0.01em;
+}
+
+.md-device-count {
+  background: var(--primary);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Devices Grid */
+.md-devices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 1.5rem;
+}
+
+.md-device-card {
+  background: transparent;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.md-device-card:hover {
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
+  transform: translateY(-5px);
+}
+
+.md-device-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.md-device-type {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--neutral-600);
+  background: var(--neutral-100);
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+}
+
+.md-device-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.md-device-status.active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.md-device-name {
+  font-family: "Clash Display", sans-serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--neutral-900);
+  margin-bottom: 1.25rem;
+  letter-spacing: -0.01em;
+}
+
+.md-device-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.md-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--neutral-100);
+}
+
+.md-detail-row:last-child {
+  border-bottom: none;
+}
+
+.md-detail-label {
+  font-size: 0.85rem;
+  color: var(--neutral-600);
+  font-weight: 500;
+}
+
+.md-detail-value {
+  font-size: 0.9rem;
+  color: var(--neutral-800);
+  font-weight: 600;
+  font-family: "SF Mono", "Monaco", "Courier New", monospace;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .md-devices-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .md-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .md-devices-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .md-device-card {
+    padding: 1.25rem;
+  }
+}

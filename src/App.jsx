@@ -4,16 +4,35 @@ import Login from "./pages/loginPage/Login";
 import Signup from "./pages/signupPage/Signup";
 import ForgotPassword from "./pages/forgetpasswordPage/ForgotPassword";
 import ResetPassword from "./pages/resetPasswordPage/ResetPassword";
-import Admin from "./pages/Admin";
-import Receiver from "./pages/Receiver";
-import EmployeeProfile from "./pages/profile/EmployeeProfile";
+import Admin from "./pages/adminPage/Admin";
+import Receiver from "./pages/userPage/Receiver";
+import EmployeeProfile from "./components/user/profile/EmployeeProfile";
+import AdminProfile from "./components/admin/profile/AdminProfile";
 
 // Protected Route
 function ProtectedRoute({ children, adminOnly = false }) {
   const { isAuthenticated, loading, user } = useAuth();
   if (loading) return <div>Loading...</div>;
   if (!isAuthenticated) return <Navigate to="/login" />;
-  if (adminOnly && user?.role !== "admin") return <Navigate to="/" />;
+  if (adminOnly && user?.role !== "admin") return <Navigate to="/receiver" />;
+  return children;
+}
+
+// User-only Route (authenticated, non-admin users only)
+function UserOnlyRoute({ children }) {
+  const { isAuthenticated, loading, user } = useAuth();
+  if (loading) return <div>Loading...</div>;
+  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (user?.role === "admin") return <Navigate to="/admin/profile" />;
+  return children;
+}
+
+// Admin-only Route (authenticated, admin users only)
+function AdminOnlyRoute({ children }) {
+  const { isAuthenticated, loading, user } = useAuth();
+  if (loading) return <div>Loading...</div>;
+  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (user?.role !== "admin") return <Navigate to="/profile" />;
   return children;
 }
 
@@ -21,7 +40,7 @@ function ProtectedRoute({ children, adminOnly = false }) {
 function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
   if (loading) return <div>Loading...</div>;
-  return !isAuthenticated ? children : <Navigate to="/" />;
+  return !isAuthenticated ? children : <Navigate to="/receiver" />;
 }
 
 function App() {
@@ -48,17 +67,45 @@ function App() {
           />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/profile" element={<EmployeeProfile />} />
 
-          {/* Protected routes */}
+          {/* User profile - logged-in non-admin users only */}
           <Route
-            path="/"
+            path="/profile"
+            element={
+              <UserOnlyRoute>
+                <EmployeeProfile />
+              </UserOnlyRoute>
+            }
+          />
+
+          {/* Admin profile - logged-in admin users only */}
+          <Route
+            path="/admin/profile"
+            element={
+              <AdminOnlyRoute>
+                <AdminProfile />
+              </AdminOnlyRoute>
+            }
+          />
+
+          {/* Redirect root to receiver */}
+          <Route path="/" element={<Navigate to="/receiver" replace />} />
+
+          {/* Receiver nested routes */}
+          <Route
+            path="/receiver"
             element={
               <ProtectedRoute>
                 <Receiver />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route index element={<Navigate to="devices" replace />} />
+            <Route path="devices" element={null} />
+            <Route path="tickets" element={null} />
+            <Route path="mydevices" element={null} />
+            <Route path="requesthistory" element={null} />
+          </Route>
 
           {/* Admin nested routes */}
           <Route

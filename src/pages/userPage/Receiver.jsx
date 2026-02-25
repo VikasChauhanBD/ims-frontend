@@ -1,19 +1,27 @@
 import { useState, useMemo } from "react";
-import { LayoutDashboard, Package, TicketCheck } from "lucide-react";
-import Navbar from "../components/navbar/Navbar";
-import UserDevicesView from "../components/user/userDevices/UserDevicesView";
-import MyTicketsView from "../components/user/userTicket/MyTicketsView";
-import AnimatedBackground from "../components/animatedBackground/AnimatedBackground";
+import { useNavigate, useLocation, Outlet } from "react-router-dom";
+import { Package, TicketCheck, Monitor, ClipboardList } from "lucide-react";
+import Navbar from "../../components/navbar/Navbar";
+import UserDevicesView from "../../components/user/userDevices/UserDevicesView";
+import MyTicketsView from "../../components/user/userTicket/MyTicketsView";
+import MyDevices from "../../components/user/myDevices/MyDevices";
+import RequestHistory from "../../components/user/requestHistory/RequestHistory";
+import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
 import {
   mockDevices,
   mockEmployees,
   mockAssignments,
   mockTickets,
-} from "../assets/data/mockData";
+} from "../../assets/data/mockData";
 import "./Receiver.css";
 
 function Receiver() {
-  const [activeTab, setActiveTab] = useState("devices");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Derive activeTab from the current URL
+  const activeTab = location.pathname.split("/receiver/")[1] || "devices";
+
   const [devices] = useState(mockDevices);
   const [employees] = useState(mockEmployees);
   const [assignments] = useState(mockAssignments);
@@ -38,6 +46,7 @@ function Receiver() {
     const totalLaptops = devices.filter(
       (d) => d.device_type === "laptop",
     ).length;
+
     return {
       totalDevices,
       assignedDevices,
@@ -62,12 +71,15 @@ function Receiver() {
   const tabs = [
     { id: "devices", label: "Devices", icon: Package },
     { id: "tickets", label: "My Tickets", icon: TicketCheck },
+    { id: "mydevices", label: "My Devices", icon: Monitor },
+    { id: "requesthistory", label: "Request History", icon: ClipboardList },
   ];
 
   return (
     <div className="receiver-main-container">
       <AnimatedBackground />
       <Navbar />
+
       {/* Tabs */}
       <div className="receiver-tabs-container">
         <div className="receiver-tabs-card">
@@ -76,7 +88,7 @@ function Receiver() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => navigate(`/receiver/${tab.id}`)}
                 className={`receiver-tab-button ${
                   activeTab === tab.id ? "active-tab" : "inactive-tab"
                 }`}
@@ -88,6 +100,7 @@ function Receiver() {
           })}
         </div>
       </div>
+
       {/* Main Content */}
       <div className="receiver-content">
         {activeTab === "devices" && (
@@ -97,10 +110,18 @@ function Receiver() {
             getEmployeeForDevice={getEmployeeForDevice}
           />
         )}
+
         {activeTab === "tickets" && (
           <MyTicketsView tickets={tickets} devices={devices} />
         )}
+
+        {activeTab === "mydevices" && <MyDevices />}
+
+        {activeTab === "requesthistory" && <RequestHistory />}
       </div>
+
+      {/* Required by React Router for nested routes */}
+      <Outlet />
     </div>
   );
 }

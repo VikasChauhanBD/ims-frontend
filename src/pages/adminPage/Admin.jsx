@@ -7,19 +7,19 @@ import {
   FileText,
   Ticket,
 } from "lucide-react";
-import Navbar from "../components/navbar/Navbar";
-import Dashboard from "../components/admin/dashboard/Dashboard";
-import DevicesView from "../components/admin/devices/DevicesView";
-import EmployeesView from "../components/admin/employees/EmployeesView";
-import AssignmentsView from "../components/admin/assignments/AssignmentsView";
-import TicketRequestsView from "../components/admin/ticketRequestsView/TicketRequestsView";
-import AnimatedBackground from "../components/animatedBackground/AnimatedBackground";
+import Navbar from "../../components/navbar/Navbar";
+import Dashboard from "../../components/admin/dashboard/Dashboard";
+import DevicesView from "../../components/admin/devices/DevicesView";
+import EmployeesView from "../../components/admin/employees/EmployeesView";
+import AssignmentsView from "../../components/admin/assignments/AssignmentsView";
+import TicketRequestsView from "../../components/admin/ticketRequestsView/TicketRequestsView";
+import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
 import {
   mockDevices,
   mockEmployees,
   mockAssignments,
   mockTickets,
-} from "../assets/data/mockData";
+} from "../../assets/data/mockData";
 import "./Admin.css";
 
 function Admin() {

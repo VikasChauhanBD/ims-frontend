@@ -1,24 +1,3 @@
-// import { Package } from "lucide-react";
-// import "./Navbar.css";
-
-// export default function Navbar() {
-//   return (
-//     <nav className="navbar">
-//       <div className="navbar-container">
-//         <div className="navbar-logo">
-//           <div className="logo-icon">
-//             <Package className="logo-package" />
-//           </div>
-//           <div className="logo-text">
-//             <h1 className="logo-title">Inventory Management System</h1>
-//             <p className="logo-subtitle">Track & Manage Company Assets</p>
-//           </div>
-//         </div>
-//       </div>
-//     </nav>
-//   );
-// }
-
 import { Package, LogOut, User } from "lucide-react";
 import { useAuth } from "../../AuthContext/AuthContext";
 import { NavLink, useNavigate } from "react-router-dom";
@@ -32,6 +11,8 @@ export default function Navbar() {
     await logout();
     navigate("/login");
   };
+
+  const profilePath = user?.role === "admin" ? "/admin/profile" : "/profile";
 
   return (
     <nav className="navbar">
@@ -49,7 +30,7 @@ export default function Navbar() {
 
         {/* RIGHT SIDE - USER + LOGOUT */}
         <div className="navbar-actions">
-          <NavLink to="/profile" className="profile-link">
+          <NavLink to={profilePath} className="profile-link">
             <div className="user-info">
               <User size={20} />
               <span>{user?.full_name || user?.email}</span>

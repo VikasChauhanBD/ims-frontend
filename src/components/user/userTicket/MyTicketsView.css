@@ -31,6 +31,11 @@
   transition: all 0.3s ease;
 }
 
+.user-ticket-card:hover {
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
+  transform: translateY(-5px);
+}
+
 .user-ticket-title {
   font-size: 1.2rem;
   font-weight: 600;
