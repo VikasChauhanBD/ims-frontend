@@ -1,6 +1,7 @@
 /* Content Section */
 .rh-content-section {
   animation: rhSlideIn 0.4s ease-out;
+  padding-bottom: 2rem;
 }
 
 @keyframes rhSlideIn {

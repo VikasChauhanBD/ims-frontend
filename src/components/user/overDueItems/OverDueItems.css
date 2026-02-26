@@ -1,6 +1,7 @@
 /* Container */
 .od-container {
   animation: odFadeIn 0.4s ease-out;
+  padding-bottom: 2rem;
 }
 
 @keyframes odFadeIn {

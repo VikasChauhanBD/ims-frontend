@@ -101,6 +101,7 @@ function App() {
             <Route path="requesthistory" element={null} />
             <Route path="overdue" element={null} />
             <Route path="reportissue" element={null} />
+            <Route path="raiserepairticket" element={null} />
           </Route>
 
           <Route

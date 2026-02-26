@@ -7,6 +7,7 @@ import {
   ClipboardList,
   AlarmClock,
   AlertCircle,
+  Wrench,
 } from "lucide-react";
 import Navbar from "../../components/navbar/Navbar";
 import UserDevicesView from "../../components/user/userDevices/UserDevicesView";
@@ -15,6 +16,7 @@ import MyDevices from "../../components/user/myDevices/MyDevices";
 import RequestHistory from "../../components/user/requestHistory/RequestHistory";
 import OverDueItems from "../../components/user/overDueItems/OverDueItems";
 import ReportIssue from "../../components/user/reportIssue/ReportIssue";
+import RaiseRepairTicket from "../../components/user/raiseRepairTicket/RaiseRepairTicket";
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
 import {
   mockDevices,
@@ -84,6 +86,7 @@ function Receiver() {
     { id: "requesthistory", label: "Request History", icon: ClipboardList },
     { id: "overdue", label: "Return Due", icon: AlarmClock },
     { id: "reportissue", label: "Report Issue", icon: AlertCircle },
+    { id: "raiserepairticket", label: "Repair Ticket", icon: Wrench },
   ];
 
   return (
@@ -133,6 +136,8 @@ function Receiver() {
         {activeTab === "overdue" && <OverDueItems />}
 
         {activeTab === "reportissue" && <ReportIssue />}
+
+        {activeTab === "raiserepairticket" && <RaiseRepairTicket />}
       </div>
 
       {/* Required by React Router for nested routes */}
