@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import "./EmployeeProfile.css";
 import AnimatedBackground from "../../animatedBackground/AnimatedBackground";
-import MyDevices from "../myDevices/MyDevices";
-import RequestHistory from "../requestHistory/RequestHistory";
+import ActivityLog from "../activityLog/ActivityLog";
 
 const EmployeeProfile = () => {
   const [employee] = useState({
@@ -76,8 +75,7 @@ const EmployeeProfile = () => {
       </div>
 
       <div className="user-profile-body">
-        <MyDevices />
-        <RequestHistory />
+        <ActivityLog />
       </div>
     </div>
   );
