@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { inventoryAPI } from "../../../services/api";
+import { useAuth } from "../../../AuthContext/AuthContext";
+import { mockDevices, mockAssignments } from "../../../assets/data/mockData";
 import "./MyDevices.css";
 
 const MyDevices = () => {
+  const { user } = useAuth();
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,7 +23,7 @@ const MyDevices = () => {
         ? res.data
         : res.data.results || [];
 
-      const devs = assignments.map((a) => ({
+      let devs = assignments.map((a) => ({
         id: a.device?.id || a.device,
         device_id: a.device?.device_id || "",
         type: a.device?.device_type || "",
@@ -30,7 +33,46 @@ const MyDevices = () => {
         assignedDate: a.assigned_date,
         status: a.status,
         condition: a.device?.condition || "",
+        image: a.device?.image || null,
       }));
+
+      // fallback to mocks if API returned nothing
+      if (devs.length === 0) {
+        const uid = user?.id ? String(user.id) : null;
+        const userAssigns = uid
+          ? mockAssignments.filter((a) => String(a.employee_id) === uid)
+          : [];
+        if (userAssigns.length) {
+          devs = userAssigns.map((a) => {
+            const d = mockDevices.find((m) => m.id === a.device_id);
+            return {
+              id: d?.device_id || d?.id || a.device_id,
+              device_id: d?.device_id || "",
+              type: d?.device_type,
+              brand: d?.brand,
+              model: d?.model,
+              serialNumber: d?.serial_number || "",
+              assignedDate: a.assigned_date,
+              status: a.status,
+              condition: d?.condition || "",
+              image: d?.image || null,
+            };
+          });
+        } else {
+          devs = mockDevices.map((d) => ({
+            id: d.device_id || d.id,
+            device_id: d.device_id || "",
+            type: d.device_type,
+            brand: d.brand,
+            model: d.model,
+            serialNumber: d.serial_number || "",
+            assignedDate: null,
+            status: "available",
+            condition: d.condition || "",
+            image: d.image || null,
+          }));
+        }
+      }
 
       setDevices(devs);
     } catch (err) {
@@ -75,6 +117,13 @@ const MyDevices = () => {
         {devices.map((device) => (
           <div key={device.id} className="md-device-card">
             <div className="md-device-header">
+              {device.image && (
+                <img
+                  src={device.image}
+                  alt="device"
+                  className="md-device-image"
+                />
+              )}
               <span className="md-device-type">{device.type}</span>
               <span
                 className={`md-device-status ${device.status.toLowerCase()}`}

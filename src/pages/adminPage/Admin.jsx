@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -15,6 +15,7 @@ import AssignmentsView from "../../components/admin/assignments/AssignmentsView"
 import TicketRequestsView from "../../components/admin/ticketRequestsView/TicketRequestsView";
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
 import { inventoryAPI, employeeAPI } from "../../services/api";
+import { mockEmployees, mockDevices, mockAssignments } from "../../assets/data/mockData";
 import "./Admin.css";
 
 function Admin() {
@@ -31,36 +32,70 @@ function Admin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch data from backend
+  // Fetch data from backend - poll every 5 seconds for updates
   useEffect(() => {
     fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
   }, []);
+
+  const previousTicketsLengthRef = useRef(0);
 
   const fetchData = async () => {
     try {
-      setLoading(true);
-      setError(null);
-
       // Fetch devices
       const devicesResponse = await inventoryAPI.getDevices();
-      setDevices(Array.isArray(devicesResponse.data) ? devicesResponse.data : devicesResponse.data.results || []);
+      let fetchedDevices = Array.isArray(devicesResponse.data)
+        ? devicesResponse.data
+        : devicesResponse.data.results || [];
+      if (!fetchedDevices.length) fetchedDevices = mockDevices;
+      setDevices(fetchedDevices);
 
       // Fetch employees
       const employeesResponse = await employeeAPI.getEmployees();
-      setEmployees(Array.isArray(employeesResponse.data) ? employeesResponse.data : employeesResponse.data.results || []);
+      let fetchedEmps = Array.isArray(employeesResponse.data)
+        ? employeesResponse.data
+        : employeesResponse.data.results || [];
+      if (!fetchedEmps.length) fetchedEmps = mockEmployees;
+      setEmployees(fetchedEmps);
 
       // Fetch assignments
       const assignmentsResponse = await inventoryAPI.getAssignments();
-      setAssignments(Array.isArray(assignmentsResponse.data) ? assignmentsResponse.data : assignmentsResponse.data.results || []);
+      let fetchedAssigns = Array.isArray(assignmentsResponse.data)
+        ? assignmentsResponse.data
+        : assignmentsResponse.data.results || [];
+      if (!fetchedAssigns.length) fetchedAssigns = mockAssignments;
+      setAssignments(fetchedAssigns);
 
       // Fetch tickets
       const ticketsResponse = await inventoryAPI.getTickets();
-      setTickets(Array.isArray(ticketsResponse.data) ? ticketsResponse.data : ticketsResponse.data.results || []);
+      const fetchedTickets = Array.isArray(ticketsResponse.data)
+        ? ticketsResponse.data
+        : ticketsResponse.data.results || [];
+      setTickets(fetchedTickets);
+
+      // Notify if new ticket received
+      if (fetchedTickets.length > previousTicketsLengthRef.current) {
+        alert(`New ticket request received! (Total: ${fetchedTickets.length})`);
+      }
+      previousTicketsLengthRef.current = fetchedTickets.length;
+
+      setLoading(false);
+      setError(null);
     } catch (err) {
       setError(err.message || "Failed to fetch data");
       console.error("Error fetching admin data:", err);
-    } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddDevice = async (device) => {
+    try {
+      await inventoryAPI.createDevice(device);
+      fetchData();
+    } catch (err) {
+      console.error("Failed to create device:", err);
+      alert("Error creating device");
     }
   };
 
@@ -179,6 +214,7 @@ function Admin() {
             employees={employees}
             getEmployeeForDevice={getEmployeeForDevice}
             onRefresh={fetchData}
+            onAddDevice={handleAddDevice}
           />
         )}
 

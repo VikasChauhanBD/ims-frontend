@@ -6,6 +6,7 @@ import {
   Package,
   AlertCircle,
 } from "lucide-react";
+import { inventoryAPI } from "../../../services/api";
 import "./UserDeviceCard.css";
 
 export default function UserDeviceCard({
@@ -13,6 +14,7 @@ export default function UserDeviceCard({
   onAssign,
   onEdit,
   assignedTo,
+  onTicketCreated,
 }) {
   const [showModal, setShowModal] = useState(false);
   const [ticketData, setTicketData] = useState({
@@ -35,11 +37,25 @@ export default function UserDeviceCard({
     poor: "condition-poor",
   };
 
-  const handleSubmitTicket = () => {
-    console.log("Ticket Submitted: ", ticketData);
-    alert("Your request has been submitted!");
-    setShowModal(false);
-    setTicketData({ name: "", reason: "", priority: "Medium" });
+  const handleSubmitTicket = async () => {
+    try {
+      const payload = {
+        ticket_type: "new_device",
+        priority: ticketData.priority.toLowerCase(),
+        subject: `Request ${device.brand} ${device.model}`,
+        description: ticketData.reason,
+        device: device.id,
+      };
+      await inventoryAPI.createTicket(payload);
+      if (onTicketCreated) onTicketCreated();
+      alert("Your request has been submitted!");
+    } catch (err) {
+      console.error("Device request error", err);
+      alert("Failed to submit request");
+    } finally {
+      setShowModal(false);
+      setTicketData({ name: "", reason: "", priority: "Medium" });
+    }
   };
 
   return (

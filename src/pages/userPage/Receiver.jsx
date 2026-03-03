@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
   Package,
@@ -19,6 +19,7 @@ import ReportIssue from "../../components/user/reportIssue/ReportIssue";
 import RaiseRepairTicket from "../../components/user/raiseRepairTicket/RaiseRepairTicket";
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
 import { inventoryAPI, authAPI } from "../../services/api";
+import { mockDevices, mockAssignments } from "../../assets/data/mockData";
 import "./Receiver.css";
 
 function Receiver() {
@@ -35,35 +36,70 @@ function Receiver() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch data from backend
+  // Fetch data from backend - poll every 5 seconds for updates
   useEffect(() => {
     fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
   }, []);
+
+  const previousTicketsLengthRef = useRef(0);
 
   const fetchData = async () => {
     try {
-      setLoading(true);
-      setError(null);
-
       // Fetch current user
       const userResponse = await authAPI.getCurrentUser();
       setCurrentUser(userResponse.data);
 
       // Fetch devices
       const devicesResponse = await inventoryAPI.getDevices();
-      setDevices(Array.isArray(devicesResponse.data) ? devicesResponse.data : devicesResponse.data.results || []);
+      let fetchedDevices = Array.isArray(devicesResponse.data)
+        ? devicesResponse.data
+        : devicesResponse.data.results || [];
+      if (!fetchedDevices.length) fetchedDevices = mockDevices;
+      setDevices(fetchedDevices);
 
       // Fetch assignments
       const assignmentsResponse = await inventoryAPI.getAssignments();
-      setAssignments(Array.isArray(assignmentsResponse.data) ? assignmentsResponse.data : assignmentsResponse.data.results || []);
+      let fetchedAssigns = Array.isArray(assignmentsResponse.data)
+        ? assignmentsResponse.data
+        : assignmentsResponse.data.results || [];
+      if (!fetchedAssigns.length) {
+        // try to use currentUser
+        if (currentUser && currentUser.id) {
+          fetchedAssigns = mockAssignments.filter(
+            (a) => String(a.employee_id) === String(currentUser.id),
+          ).map((a) => ({
+            ...a,
+            device: mockDevices.find((d) => d.id === a.device_id) || null,
+          }));
+        }
+        if (!fetchedAssigns.length) {
+          fetchedAssigns = mockAssignments.map((a) => ({
+            ...a,
+            device: mockDevices.find((d) => d.id === a.device_id) || null,
+          }));
+        }
+      }
+      setAssignments(fetchedAssigns);
 
       // Fetch tickets
       const ticketsResponse = await inventoryAPI.getTickets();
-      setTickets(Array.isArray(ticketsResponse.data) ? ticketsResponse.data : ticketsResponse.data.results || []);
+      const fetchedTickets = Array.isArray(ticketsResponse.data) ? ticketsResponse.data : ticketsResponse.data.results || [];
+      setTickets(fetchedTickets);
+
+      // Notify if new ticket received
+      if (fetchedTickets.length > previousTicketsLengthRef.current) {
+        const newCount = fetchedTickets.length - previousTicketsLengthRef.current;
+        alert(`You have ${newCount} new ticket update(s)!`);
+      }
+      previousTicketsLengthRef.current = fetchedTickets.length;
+
+      setLoading(false);
+      setError(null);
     } catch (err) {
       setError(err.message || "Failed to fetch data");
       console.error("Error fetching data:", err);
-    } finally {
       setLoading(false);
     }
   };
@@ -167,6 +203,7 @@ function Receiver() {
             devices={devices}
             userEmail={currentUser?.email}
             getEmployeeForDevice={getEmployeeForDevice}
+            onTicketCreated={fetchData}
           />
         )}
 

@@ -48,13 +48,17 @@ export default function DevicesView({
       return;
     }
 
+    // send raw newDevice to parent; parent will persist and refresh
+    if (onAddDevice) onAddDevice(newDevice);
+
+    // optimistically update local list
     const newDeviceWithId = {
       ...newDevice,
-      id: `d${deviceList.length + 1}`,
+      id: `temp-${Date.now()}`,
       created_at: new Date().toISOString(),
     };
     setDeviceList([...deviceList, newDeviceWithId]);
-    if (onAddDevice) onAddDevice(newDeviceWithId);
+
     setShowModal(false);
     setNewDevice({
       device_type: "phone",

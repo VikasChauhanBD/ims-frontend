@@ -8,6 +8,7 @@ export default function UserDevicesView({
   employees = [],
   getEmployeeForDevice,
   onAssignDevice,
+  onTicketCreated,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -88,6 +89,7 @@ export default function UserDevicesView({
                 device={device}
                 assignedTo={employee?.name}
                 onAssign={onAssignDevice}
+                onTicketCreated={onTicketCreated}
               />
             );
           })}
