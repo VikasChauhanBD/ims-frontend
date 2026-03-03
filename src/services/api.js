@@ -147,8 +147,8 @@ export const inventoryAPI = {
 
 // Employee APIs
 export const employeeAPI = {
-  getEmployees: (params) => api.get("/inventory/employees/", { params }),
-  getEmployee: (id) => api.get(`/inventory/employees/${id}/`),
+  getEmployees: (params) => api.get("/auth/employees/", { params }),
+  getEmployee: (id) => api.get(`/auth/employees/${id}/`),
 };
 
 // Helper function to handle file uploads
