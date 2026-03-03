@@ -149,6 +149,9 @@ export const inventoryAPI = {
 export const employeeAPI = {
   getEmployees: (params) => api.get("/auth/employees/", { params }),
   getEmployee: (id) => api.get(`/auth/employees/${id}/`),
+  createEmployee: (data) => api.post("/auth/employees/", data),
+  updateEmployee: (id, data) => api.patch(`/auth/employees/${id}/`, data),
+  deleteEmployee: (id) => api.delete(`/auth/employees/${id}/`),
 };
 
 // Helper function to handle file uploads

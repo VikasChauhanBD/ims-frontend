@@ -1,15 +1,20 @@
 import React, { useState } from "react";
 import { Search, Filter, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import EmployeeCard from "./EmployeeCard";
+import AddEmployeeModal from "./AddEmployeeModal";
 import "./EmployeesView.css";
 
 export default function EmployeesView({
   employees = [],
   getDeviceCountForEmployee,
+  onRefresh,
 }) {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDepartment, setFilterDepartment] = useState("all");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // make sure we handle cases where some fields might be missing
   const departments = Array.from(
@@ -24,8 +29,12 @@ export default function EmployeesView({
       (employee.email || "").toLowerCase().includes(term) ||
       (employee.position || "").toLowerCase().includes(term);
 
+    // Handle status filter based on is_active boolean
     const matchesStatus =
-      filterStatus === "all" || employee.status === filterStatus;
+      filterStatus === "all" ||
+      (filterStatus === "active" && employee.is_active === true) ||
+      (filterStatus === "inactive" && employee.is_active === false);
+    
     const matchesDepartment =
       filterDepartment === "all" || employee.department === filterDepartment;
 
@@ -39,7 +48,10 @@ export default function EmployeesView({
           <h2>Employees</h2>
           <p>Manage employee records and assignments</p>
         </div>
-        <button className="employee-add-btn">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="employee-add-btn"
+        >
           <Plus className="employee-btn-icon" />
           Add Employee
         </button>
@@ -105,6 +117,12 @@ export default function EmployeesView({
           Showing {filteredEmployees.length} of {employees.length} employees
         </p>
       </div>
+
+      <AddEmployeeModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onEmployeeAdded={onRefresh}
+      />
     </div>
   );
 }

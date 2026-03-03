@@ -7,18 +7,18 @@ export default function EmployeeCard({
   deviceCount = 0,
   onViewDetails,
 }) {
-  const statusClasses =
-    employee.status === "active"
-      ? "employee-status-active"
-      : "employee-status-inactive";
-  const displayStatus = employee.status || "unknown";
+  // Use is_active boolean from API
+  const isActive = employee.is_active === true;
+  const statusClasses = isActive
+    ? "employee-status-active"
+    : "employee-status-inactive";
 
   return (
     <div className="employee-card">
       <div className="employee-card-header">
         <div className="employee-info">
           <div className={`employee-icon ${statusClasses}`}>
-            {employee.status === "active" ? (
+            {isActive ? (
               <UserCheck className="employee-user-icon" />
             ) : (
               <UserX className="employee-user-icon" />
@@ -30,7 +30,7 @@ export default function EmployeeCard({
           </div>
         </div>
         <span className={`employee-status ${statusClasses}`}>
-          {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
+          {isActive ? "Active" : "Inactive"}
         </span>
       </div>
 
