@@ -42,7 +42,11 @@ const Login = () => {
     });
 
     if (result.success) {
-      const from = location.state?.from?.pathname || "/dashboard";
+      // Check if user is admin
+      const redirectPath = result.data?.role === 'admin' 
+        ? '/admin/dashboard' 
+        : '/dashboard';
+      const from = location.state?.from?.pathname || redirectPath;
       navigate(from, { replace: true });
     } else {
       setErrors(result.errors);

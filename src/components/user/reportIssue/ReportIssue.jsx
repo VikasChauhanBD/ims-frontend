@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   AlertCircle,
   ChevronDown,
@@ -16,51 +16,20 @@ import {
   CircleCheck,
   FileText,
 } from "lucide-react";
+import { inventoryAPI } from "../../../services/api";
 import "./ReportIssue.css";
 
-const ASSETS = [
-  { id: "ASSET-001", name: 'MacBook Pro 16"' },
-  { id: "ASSET-002", name: "iPhone 14 Pro" },
-  { id: "ASSET-003", name: 'Dell Monitor 27"' },
-  { id: "ASSET-004", name: "Logitech MX Keys" },
-  { id: "ASSET-005", name: 'iPad Pro 12.9"' },
-];
-
 const ISSUE_TYPES = [
-  { id: "hardware", label: "Hardware Problem", icon: Wrench },
   { id: "software", label: "Software Problem", icon: Code2 },
+  { id: "hardware", label: "Hardware Problem", icon: Wrench },
   { id: "damage", label: "Physical Damage", icon: ShieldAlert },
   { id: "other", label: "Other", icon: HelpCircle },
 ];
 
 const STATUS_STEPS = [
-  { key: "submitted", label: "Submitted", icon: FileText },
-  { key: "under_review", label: "Under Review", icon: Clock },
+  { key: "pending", label: "Pending", icon: FileText },
   { key: "in_repair", label: "In Repair", icon: Hammer },
   { key: "resolved", label: "Resolved", icon: CircleCheck },
-];
-
-const MOCK_REPORTS = [
-  {
-    id: "RPT-001",
-    assetId: "ASSET-001",
-    assetName: 'MacBook Pro 16"',
-    issueType: "hardware",
-    issueLabel: "Hardware Problem",
-    description: "Keyboard keys are sticking and some are unresponsive.",
-    status: "in_repair",
-    submittedDate: "2025-02-10",
-  },
-  {
-    id: "RPT-002",
-    assetId: "ASSET-003",
-    assetName: 'Dell Monitor 27"',
-    issueType: "damage",
-    issueLabel: "Physical Damage",
-    description: "Screen has a crack on the bottom-right corner.",
-    status: "under_review",
-    submittedDate: "2025-02-18",
-  },
 ];
 
 const formatDate = (d) =>
@@ -70,16 +39,23 @@ const formatDate = (d) =>
     day: "numeric",
   });
 
-const getStepIndex = (status) =>
-  STATUS_STEPS.findIndex((s) => s.key === status);
+const getStepIndex = (status) => {
+  const statusMap = {
+    "pending": 0,
+    "in_repair": 1,
+    "resolved": 2,
+  };
+  return statusMap[status] || 0;
+};
 
-export default function ReportIssue() {
+export default function ReportIssue({ onTicketCreated }) {
   const [view, setView] = useState("form"); // "form" | "history"
-  const [reports, setReports] = useState(MOCK_REPORTS);
+  const [devices, setDevices] = useState([]);
+  const [reports, setReports] = useState([]);
 
   // Form state
-  const [selectedAsset, setSelectedAsset] = useState("");
-  const [assetOpen, setAssetOpen] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState("");
+  const [deviceOpen, setDeviceOpen] = useState(false);
   const [issueType, setIssueType] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState(null);
@@ -87,9 +63,38 @@ export default function ReportIssue() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const fileRef = useRef();
 
-  const selectedAssetObj = ASSETS.find((a) => a.id === selectedAsset);
+  // Fetch devices and user's issues on mount
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch devices
+      const devicesRes = await inventoryAPI.getDevices();
+      setDevices(Array.isArray(devicesRes.data) ? devicesRes.data : devicesRes.data.results || []);
+
+      // Fetch user's own issues
+      const ticketsRes = await inventoryAPI.getMyTickets();
+      const allTickets = Array.isArray(ticketsRes.data) ? ticketsRes.data : ticketsRes.data.results || [];
+      const userIssues = allTickets.filter(t => t.ticket_type === 'issue');
+      setReports(userIssues);
+    } catch (err) {
+      setError(err.message || "Failed to fetch data");
+      console.error("Error fetching data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectedDeviceObj = devices.find((d) => d.id === selectedDevice);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -101,12 +106,12 @@ export default function ReportIssue() {
   const removeImage = () => {
     setImage(null);
     setImagePreview(null);
-    fileRef.current.value = "";
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const validate = () => {
     const e = {};
-    if (!selectedAsset) e.asset = "Please select an asset.";
+    if (!selectedDevice) e.device = "Please select a device.";
     if (!issueType) e.issueType = "Please select an issue type.";
     if (!description.trim()) e.description = "Please describe the issue.";
     else if (description.trim().length < 10)
@@ -123,30 +128,39 @@ export default function ReportIssue() {
     }
     setErrors({});
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 900));
 
-    const newReport = {
-      id: `RPT-${String(reports.length + 1).padStart(3, "0")}`,
-      assetId: selectedAsset,
-      assetName: selectedAssetObj.name,
-      issueType,
-      issueLabel: ISSUE_TYPES.find((t) => t.id === issueType)?.label,
-      description,
-      status: "submitted",
-      submittedDate: new Date().toISOString().split("T")[0],
-    };
+    try {
+      // Create ticket with type 'issue'
+      const payload = {
+        ticket_type: "issue",
+        priority: "medium",
+        subject: issueType,
+        description: description,
+        device: selectedDevice,
+      };
 
-    setReports((prev) => [newReport, ...prev]);
-    setSubmitting(false);
-    setSubmitted(true);
+      await inventoryAPI.createTicket(payload);
 
-    setTimeout(() => {
-      setSubmitted(false);
-      setSelectedAsset("");
-      setIssueType("");
-      setDescription("");
-      removeImage();
-    }, 2500);
+      setSubmitting(false);
+      setSubmitted(true);
+
+      // Reset form after 2.5 seconds
+      setTimeout(() => {
+        setSubmitted(false);
+        setSelectedDevice("");
+        setIssueType("");
+        setDescription("");
+        removeImage();
+        // Refresh the issues list
+        if (onTicketCreated) {
+          onTicketCreated();
+        }
+        fetchData();
+      }, 2500);
+    } catch (err) {
+      setErrors({ submit: err.message || "Failed to submit report" });
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -156,7 +170,7 @@ export default function ReportIssue() {
         <div className="ri-header-left">
           <h2 className="ri-title">Report an Issue</h2>
           <p className="ri-subtitle">
-            Submit a problem with your assigned asset
+            Submit a problem with your device
           </p>
         </div>
         <div className="ri-header-tabs">
@@ -193,53 +207,74 @@ export default function ReportIssue() {
                 Your issue has been reported. Our team will review it shortly.
               </p>
             </div>
+          ) : loading ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
+              Loading devices...
+            </div>
+          ) : error ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "#d32f2f" }}>
+              Error: {error}
+            </div>
           ) : (
             <form className="ri-form" onSubmit={handleSubmit} noValidate>
-              {/* Select Asset */}
+              {errors.submit && (
+                <div style={{ padding: "10px", color: "#d32f2f", marginBottom: "20px" }}>
+                  {errors.submit}
+                </div>
+              )}
+
+              {/* Select Device */}
               <div className="ri-field">
                 <label className="ri-label">
                   <Monitor size={14} />
-                  Select Asset <span className="ri-required">*</span>
+                  Select Device <span className="ri-required">*</span>
                 </label>
                 <div
-                  className={`ri-select ${assetOpen ? "ri-select-open" : ""} ${errors.asset ? "ri-input-error" : ""}`}
-                  onClick={() => setAssetOpen((o) => !o)}
+                  className={`ri-select ${deviceOpen ? "ri-select-open" : ""} ${errors.device ? "ri-input-error" : ""}`}
+                  onClick={() => setDeviceOpen((o) => !o)}
                 >
                   <span
                     className={
-                      selectedAssetObj
+                      selectedDeviceObj
                         ? "ri-select-value"
                         : "ri-select-placeholder"
                     }
                   >
-                    {selectedAssetObj
-                      ? `${selectedAssetObj.id} — ${selectedAssetObj.name}`
-                      : "Choose an asset..."}
+                    {selectedDeviceObj
+                      ? `${selectedDeviceObj.device_name || selectedDeviceObj.name}`
+                      : "Choose a device..."}
                   </span>
                   <ChevronDown
                     size={16}
-                    className={`ri-chevron ${assetOpen ? "ri-chevron-up" : ""}`}
+                    className={`ri-chevron ${deviceOpen ? "ri-chevron-up" : ""}`}
                   />
                 </div>
-                {assetOpen && (
+                {deviceOpen && (
                   <div className="ri-dropdown">
-                    {ASSETS.map((a) => (
-                      <div
-                        key={a.id}
-                        className={`ri-option ${selectedAsset === a.id ? "ri-option-selected" : ""}`}
-                        onClick={() => {
-                          setSelectedAsset(a.id);
-                          setAssetOpen(false);
-                          setErrors((e) => ({ ...e, asset: undefined }));
-                        }}
-                      >
-                        <span className="ri-option-id">{a.id}</span>
-                        <span className="ri-option-name">{a.name}</span>
+                    {devices.length === 0 ? (
+                      <div style={{ padding: "10px", color: "#999" }}>
+                        No devices available
                       </div>
-                    ))}
+                    ) : (
+                      devices.map((d) => (
+                        <div
+                          key={d.id}
+                          className={`ri-option ${selectedDevice === d.id ? "ri-option-selected" : ""}`}
+                          onClick={() => {
+                            setSelectedDevice(d.id);
+                            setDeviceOpen(false);
+                            setErrors((e) => ({ ...e, device: undefined }));
+                          }}
+                        >
+                          <span className="ri-option-name">
+                            {d.device_name || d.name} ({d.device_type || "device"})
+                          </span>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
-                {errors.asset && <p className="ri-error-msg">{errors.asset}</p>}
+                {errors.device && <p className="ri-error-msg">{errors.device}</p>}
               </div>
 
               {/* Issue Type */}
@@ -321,7 +356,7 @@ export default function ReportIssue() {
                 ) : (
                   <div
                     className="ri-upload-zone"
-                    onClick={() => fileRef.current.click()}
+                    onClick={() => fileRef.current?.click()}
                   >
                     <Upload size={24} className="ri-upload-icon" />
                     <p className="ri-upload-text">
@@ -365,46 +400,51 @@ export default function ReportIssue() {
       {/* ── HISTORY VIEW ── */}
       {view === "history" && (
         <div className="ri-history">
-          {reports.length === 0 ? (
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
+              Loading issues...
+            </div>
+          ) : error ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "#d32f2f" }}>
+              Error: {error}
+            </div>
+          ) : reports.length === 0 ? (
             <div className="ri-empty">
               <FileText size={48} className="ri-empty-icon" />
-              <p>No reports submitted yet.</p>
+              <p>No issues reported yet.</p>
             </div>
           ) : (
             <div className="ri-reports-list">
               {reports.map((report) => {
-                const currentStep = getStepIndex(report.status);
+                const currentStep = getStepIndex(report.status || "pending");
+                const issueTypeLabel = ISSUE_TYPES.find(
+                  (t) => t.id === report.subject?.toLowerCase()
+                )?.label || report.subject || "Issue";
                 const IssueIcon =
-                  ISSUE_TYPES.find((t) => t.id === report.issueType)?.icon ||
-                  HelpCircle;
+                  ISSUE_TYPES.find(
+                    (t) => t.id === report.subject?.toLowerCase()
+                  )?.icon || AlertCircle;
                 return (
                   <div key={report.id} className="ri-report-card">
                     {/* Card Header */}
                     <div className="ri-report-header">
                       <div className="ri-report-left">
-                        <div
-                          className={`ri-report-icon-wrap ri-icon-${report.issueType}`}
-                        >
+                        <div className="ri-report-icon-wrap">
                           <IssueIcon size={18} />
                         </div>
                         <div>
-                          <div className="ri-report-id">{report.id}</div>
+                          <div className="ri-report-id">{report.ticket_number}</div>
                           <div className="ri-report-asset">
-                            {report.assetName}
+                            {report.device?.device_name || report.device?.name || "Device"}
                           </div>
                         </div>
                       </div>
                       <div className="ri-report-right">
-                        <span
-                          className={`ri-status-pill ri-status-${report.status}`}
-                        >
-                          {
-                            STATUS_STEPS.find((s) => s.key === report.status)
-                              ?.label
-                          }
+                        <span className="ri-status-pill">
+                          {report.status || "pending"}
                         </span>
                         <span className="ri-report-date">
-                          {formatDate(report.submittedDate)}
+                          {formatDate(report.created_at || new Date())}
                         </span>
                       </div>
                     </div>
@@ -412,7 +452,7 @@ export default function ReportIssue() {
                     {/* Issue type + description */}
                     <div className="ri-report-meta">
                       <span className="ri-report-type-badge">
-                        {report.issueLabel}
+                        {issueTypeLabel}
                       </span>
                     </div>
                     <p className="ri-report-desc">{report.description}</p>

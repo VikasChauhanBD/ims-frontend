@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
   Package,
@@ -18,12 +18,7 @@ import OverDueItems from "../../components/user/overDueItems/OverDueItems";
 import ReportIssue from "../../components/user/reportIssue/ReportIssue";
 import RaiseRepairTicket from "../../components/user/raiseRepairTicket/RaiseRepairTicket";
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
-import {
-  mockDevices,
-  mockEmployees,
-  mockAssignments,
-  mockTickets,
-} from "../../assets/data/mockData";
+import { inventoryAPI, authAPI } from "../../services/api";
 import "./Receiver.css";
 
 function Receiver() {
@@ -33,10 +28,45 @@ function Receiver() {
   // Derive activeTab from the flat URL path e.g. /devices → "devices"
   const activeTab = location.pathname.replace("/", "") || "devices";
 
-  const [devices] = useState(mockDevices);
-  const [employees] = useState(mockEmployees);
-  const [assignments] = useState(mockAssignments);
-  const [tickets] = useState(mockTickets);
+  const [devices, setDevices] = useState([]);
+  const [assignments, setAssignments] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch data from backend
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch current user
+      const userResponse = await authAPI.getCurrentUser();
+      setCurrentUser(userResponse.data);
+
+      // Fetch devices
+      const devicesResponse = await inventoryAPI.getDevices();
+      setDevices(Array.isArray(devicesResponse.data) ? devicesResponse.data : devicesResponse.data.results || []);
+
+      // Fetch assignments
+      const assignmentsResponse = await inventoryAPI.getAssignments();
+      setAssignments(Array.isArray(assignmentsResponse.data) ? assignmentsResponse.data : assignmentsResponse.data.results || []);
+
+      // Fetch tickets
+      const ticketsResponse = await inventoryAPI.getTickets();
+      setTickets(Array.isArray(ticketsResponse.data) ? ticketsResponse.data : ticketsResponse.data.results || []);
+    } catch (err) {
+      setError(err.message || "Failed to fetch data");
+      console.error("Error fetching data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const stats = useMemo(() => {
     const totalDevices = devices.length;
@@ -49,10 +79,6 @@ function Receiver() {
     const maintenanceDevices = devices.filter(
       (d) => d.status === "maintenance",
     ).length;
-    const totalEmployees = employees.length;
-    const activeEmployees = employees.filter(
-      (e) => e.status === "active",
-    ).length;
     const totalPhones = devices.filter((d) => d.device_type === "phone").length;
     const totalLaptops = devices.filter(
       (d) => d.device_type === "laptop",
@@ -63,21 +89,40 @@ function Receiver() {
       assignedDevices,
       availableDevices,
       maintenanceDevices,
-      totalEmployees,
-      activeEmployees,
       totalPhones,
       totalLaptops,
     };
-  }, [devices, employees]);
+  }, [devices]);
 
   const getEmployeeForDevice = (deviceId) => {
     const assignment = assignments.find(
-      (a) => a.device_id === deviceId && a.status === "active",
+      (a) => a.device?.id === deviceId && a.status === "active",
     );
-    return assignment
-      ? employees.find((e) => e.id === assignment.employee_id)
-      : undefined;
+    return assignment ? assignment.employee : undefined;
   };
+
+  if (loading) {
+    return (
+      <div className="receiver-main-container">
+        <Navbar />
+        <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
+          Loading...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="receiver-main-container">
+        <Navbar />
+        <div style={{ textAlign: "center", padding: "40px", color: "#d32f2f" }}>
+          Error: {error}
+        </div>
+      </div>
+    );
+  }
+
 
   const tabs = [
     { id: "devices", label: "Devices", icon: Package },
@@ -120,7 +165,7 @@ function Receiver() {
         {activeTab === "devices" && (
           <UserDevicesView
             devices={devices}
-            employees={employees}
+            userEmail={currentUser?.email}
             getEmployeeForDevice={getEmployeeForDevice}
           />
         )}
@@ -135,9 +180,9 @@ function Receiver() {
 
         {activeTab === "overdue" && <OverDueItems />}
 
-        {activeTab === "reportissue" && <ReportIssue />}
+        {activeTab === "reportissue" && <ReportIssue onTicketCreated={fetchData} />}
 
-        {activeTab === "raiserepairticket" && <RaiseRepairTicket />}
+        {activeTab === "raiserepairticket" && <RaiseRepairTicket onTicketCreated={fetchData} />}
       </div>
 
       {/* Required by React Router for nested routes */}

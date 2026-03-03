@@ -1,8 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Wrench,
   FileText,
-  Hash,
   User,
   Monitor,
   ImageIcon,
@@ -10,131 +9,82 @@ import {
   X,
   CheckCircle2,
   Clock,
-  Hammer,
-  CircleCheck,
-  ChevronDown,
-  MessageSquare,
+  AlertCircle,
   Ticket,
+  Send,
 } from "lucide-react";
+import { inventoryAPI } from "../../../services/api";
 import "./RaiseRepairTicket.css";
 
-// ── Mock Data ──────────────────────────────────────────────
-const ASSETS = [
-  { id: "ASSET-001", name: 'MacBook Pro 16"' },
-  { id: "ASSET-002", name: "iPhone 14 Pro" },
-  { id: "ASSET-003", name: 'Dell Monitor 27"' },
-  { id: "ASSET-004", name: "Logitech MX Keys" },
-  { id: "ASSET-005", name: 'iPad Pro 12.9"' },
-];
+const STATUS_LABELS = {
+  pending: { label: "Pending", color: "#FFA500" },
+  in_progress: { label: "In Progress", color: "#2196F3" },
+  resolved: { label: "Resolved", color: "#4CAF50" },
+  rejected: { label: "Rejected", color: "#F44336" },
+  closed: { label: "Closed", color: "#999" },
+};
 
-const CURRENT_EMPLOYEE = { id: "EMP-2024-001", name: "Sarah Mitchell" };
 
-const STATUS_STEPS = [
-  { key: "submitted", label: "Submitted", icon: FileText },
-  { key: "under_review", label: "Under Review", icon: Clock },
-  { key: "in_repair", label: "In Repair", icon: Hammer },
-  { key: "resolved", label: "Resolved", icon: CircleCheck },
-];
-
-const MOCK_TICKETS = [
-  {
-    ticketId: "TKT-2025-001",
-    assetId: "ASSET-001",
-    assetName: 'MacBook Pro 16"',
-    employeeId: "EMP-2024-001",
-    description:
-      "Keyboard keys are sticking and some are completely unresponsive after liquid spill.",
-    status: "in_repair",
-    adminRemark: "Device received. Keyboard replacement in progress.",
-    createdAt: "2025-02-10",
-  },
-  {
-    ticketId: "TKT-2025-002",
-    assetId: "ASSET-003",
-    assetName: 'Dell Monitor 27"',
-    employeeId: "EMP-2024-001",
-    description:
-      "Screen has a large crack on the bottom-right corner affecting visibility.",
-    status: "under_review",
-    adminRemark: "",
-    createdAt: "2025-02-18",
-  },
-];
-
-// ── Helpers ────────────────────────────────────────────────
-let ticketCounter = 3;
-const genTicketId = () =>
-  `TKT-2025-${String(ticketCounter++).padStart(3, "0")}`;
-
-const formatDate = (d) =>
-  new Date(d).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-
-const getStepIndex = (status) =>
-  STATUS_STEPS.findIndex((s) => s.key === status);
-
-// ── Sub-components ─────────────────────────────────────────
-function StatusStepper({ status }) {
-  const current = getStepIndex(status);
-  return (
-    <div className="rrt-stepper">
-      {STATUS_STEPS.map((step, idx) => {
-        const Icon = step.icon;
-        const done = idx < current;
-        const active = idx === current;
-        return (
-          <div key={step.key} className="rrt-step">
-            <div
-              className={`rrt-step-circle ${done ? "rrt-step-done" : active ? "rrt-step-active" : "rrt-step-pending"}`}
-            >
-              <Icon size={12} />
-            </div>
-            <span
-              className={`rrt-step-label ${active ? "rrt-label-active" : done ? "rrt-label-done" : ""}`}
-            >
-              {step.label}
-            </span>
-            {idx < STATUS_STEPS.length - 1 && (
-              <div className={`rrt-step-line ${done ? "rrt-line-done" : ""}`} />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function StatusPill({ status }) {
-  const map = {
-    submitted: { label: "Submitted", cls: "rrt-pill-submitted" },
-    under_review: { label: "Under Review", cls: "rrt-pill-review" },
-    in_repair: { label: "In Repair", cls: "rrt-pill-repair" },
-    resolved: { label: "Resolved", cls: "rrt-pill-resolved" },
-  };
-  const { label, cls } = map[status] || { label: status, cls: "" };
-  return <span className={`rrt-status-pill ${cls}`}>{label}</span>;
-}
-
-// ── Main Component ─────────────────────────────────────────
-export default function RaiseRepairTicket() {
+export default function RaiseRepairTicket({ onTicketCreated }) {
   const [view, setView] = useState("form"); // "form" | "tickets"
-  const [tickets, setTickets] = useState(MOCK_TICKETS);
+  const [myTickets, setMyTickets] = useState([]);
 
-  // form fields
-  const [assetId, setAssetId] = useState("");
-  const [assetOpen, setAssetOpen] = useState(false);
-  const [description, setDesc] = useState("");
-  const [image, setImage] = useState(null);
-  const [preview, setPreview] = useState(null);
+  // Form fields
+  const [formData, setFormData] = useState({
+    ticket_type: "repair",
+    priority: "medium",
+    subject: "",
+    description: "",
+    device: "",
+  });
+  const [devices, setDevices] = useState([]);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [image, setImage] = useState(null);
+  const [preview, setPreview] = useState(null);
   const fileRef = useRef();
 
-  const selectedAsset = ASSETS.find((a) => a.id === assetId);
+  // Fetch devices and user tickets
+  useEffect(() => {
+    fetchDevicesAndTickets();
+  }, []);
+
+  const fetchDevicesAndTickets = async () => {
+    try {
+      setLoading(true);
+      // Fetch all devices
+      const devicesRes = await inventoryAPI.getDevices();
+      const devicesList = Array.isArray(devicesRes.data)
+        ? devicesRes.data
+        : devicesRes.data.results || [];
+      setDevices(devicesList);
+
+      // Fetch user's tickets
+      const ticketsRes = await inventoryAPI.getMyTickets();
+      const ticketsList = Array.isArray(ticketsRes.data)
+        ? ticketsRes.data
+        : ticketsRes.data.results || [];
+      // Filter repair and issue tickets
+      const repairTickets = ticketsList.filter((t) =>
+        ["repair", "issue", "replacement"].includes(t.ticket_type)
+      );
+      setMyTickets(repairTickets);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  };
 
   const handleImage = (e) => {
     const file = e.target.files[0];
@@ -150,51 +100,65 @@ export default function RaiseRepairTicket() {
   };
 
   const validate = () => {
-    const e = {};
-    if (!assetId) e.asset = "Please select an asset.";
-    if (!description.trim()) e.description = "Please describe the issue.";
-    else if (description.trim().length < 10)
-      e.description = "Description must be at least 10 characters.";
-    return e;
+    const newErrors = {};
+    if (!formData.subject.trim()) newErrors.subject = "Subject is required";
+    if (!formData.description.trim())
+      newErrors.description = "Description is required";
+    if (formData.description.trim().length < 10)
+      newErrors.description = "Description must be at least 10 characters";
+    return newErrors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length) {
-      setErrors(errs);
+    const newErrors = validate();
+    if (Object.keys(newErrors).length) {
+      setErrors(newErrors);
       return;
     }
+
     setErrors({});
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 900));
 
-    const newTicket = {
-      ticketId: genTicketId(),
-      assetId,
-      assetName: selectedAsset.name,
-      employeeId: CURRENT_EMPLOYEE.id,
-      description: description.trim(),
-      status: "submitted",
-      adminRemark: "",
-      createdAt: new Date().toISOString().split("T")[0],
-    };
+    try {
+      // Create ticket
+      const ticketPayload = {
+        ticket_type: formData.ticket_type,
+        priority: formData.priority,
+        subject: formData.subject,
+        description: formData.description,
+        device: formData.device || null,
+      };
 
-    setTickets((prev) => [newTicket, ...prev]);
-    setSubmitting(false);
-    setSuccess(true);
+      await inventoryAPI.createTicket(ticketPayload);
+      setSuccess(true);
 
-    setTimeout(() => {
-      setSuccess(false);
-      setAssetId("");
-      setDesc("");
-      removeImage();
-    }, 2600);
+      // Reset form
+      setTimeout(() => {
+        setSuccess(false);
+        setFormData({
+          ticket_type: "repair",
+          priority: "medium",
+          subject: "",
+          description: "",
+          device: "",
+        });
+        removeImage();
+        // Refresh tickets
+        fetchDevicesAndTickets();
+        if (onTicketCreated) onTicketCreated();
+      }, 2000);
+    } catch (err) {
+      setErrors({ submit: err.message || "Failed to create ticket" });
+    } finally {
+      setSubmitting(false);
+    }
   };
+
 
   return (
     <div className="rrt-container">
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="rrt-header">
         <div className="rrt-header-left">
           <div className="rrt-title-row">
@@ -203,9 +167,7 @@ export default function RaiseRepairTicket() {
             </div>
             <h2 className="rrt-title">Raise Repair Ticket</h2>
           </div>
-          <p className="rrt-subtitle">
-            Submit a structured maintenance request for your asset
-          </p>
+          <p className="rrt-subtitle">Submit a maintenance request for your device</p>
         </div>
 
         <div className="rrt-view-toggle">
@@ -222,14 +184,14 @@ export default function RaiseRepairTicket() {
           >
             <Ticket size={14} />
             My Tickets
-            {tickets.length > 0 && (
-              <span className="rrt-count">{tickets.length}</span>
+            {myTickets.length > 0 && (
+              <span className="rrt-count">{myTickets.length}</span>
             )}
           </button>
         </div>
       </div>
 
-      {/* ══ FORM VIEW ══ */}
+      {/* Form View */}
       {view === "form" && (
         <div className="rrt-form-wrapper">
           {success ? (
@@ -237,75 +199,92 @@ export default function RaiseRepairTicket() {
               <div className="rrt-success-icon">
                 <CheckCircle2 size={52} />
               </div>
-              <h3>Ticket Raised!</h3>
-              <p>
-                Your repair ticket has been submitted. Our team will review it
-                shortly.
-              </p>
+              <h3>Ticket Created!</h3>
+              <p>Your repair ticket has been submitted successfully. The admin team will review it shortly.</p>
             </div>
           ) : (
             <form className="rrt-form" onSubmit={handleSubmit} noValidate>
-              {/* Auto-generated fields row */}
-              <div className="rrt-auto-row">
-                <div className="rrt-auto-field">
-                  <div className="rrt-auto-label">
-                    <Hash size={13} /> Ticket ID
-                  </div>
-                  <div className="rrt-auto-value">Auto-generated on submit</div>
+              {errors.submit && (
+                <div className="rrt-error-banner">
+                  <AlertCircle size={14} />
+                  {errors.submit}
                 </div>
-                <div className="rrt-auto-field">
-                  <div className="rrt-auto-label">
-                    <User size={13} /> Employee ID
-                  </div>
-                  <div className="rrt-auto-value rrt-auto-filled">
-                    {CURRENT_EMPLOYEE.id} — {CURRENT_EMPLOYEE.name}
-                  </div>
+              )}
+
+              {/* Ticket Type & Priority Row */}
+              <div className="rrt-form-row">
+                <div className="rrt-field">
+                  <label className="rrt-label">
+                    <Ticket size={13} />
+                    Ticket Type <span className="rrt-required">*</span>
+                  </label>
+                  <select
+                    name="ticket_type"
+                    value={formData.ticket_type}
+                    onChange={handleInputChange}
+                    className="rrt-select-input"
+                  >
+                    <option value="repair">Repair Request</option>
+                    <option value="replacement">Replacement Request</option>
+                    <option value="issue">Issue Report</option>
+                  </select>
+                </div>
+
+                <div className="rrt-field">
+                  <label className="rrt-label">
+                    <AlertCircle size={13} />
+                    Priority <span className="rrt-required">*</span>
+                  </label>
+                  <select
+                    name="priority"
+                    value={formData.priority}
+                    onChange={handleInputChange}
+                    className="rrt-select-input"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
                 </div>
               </div>
 
-              {/* Select Asset */}
+              {/* Device Selection */}
               <div className="rrt-field">
                 <label className="rrt-label">
                   <Monitor size={13} />
-                  Asset ID <span className="rrt-required">*</span>
+                  Device <span className="rrt-optional">(Optional)</span>
                 </label>
-                <div
-                  className={`rrt-select ${assetOpen ? "rrt-select-open" : ""} ${errors.asset ? "rrt-error-border" : ""}`}
-                  onClick={() => setAssetOpen((o) => !o)}
+                <select
+                  name="device"
+                  value={formData.device}
+                  onChange={handleInputChange}
+                  className="rrt-select-input"
                 >
-                  <span
-                    className={
-                      selectedAsset ? "rrt-select-val" : "rrt-select-ph"
-                    }
-                  >
-                    {selectedAsset
-                      ? `${selectedAsset.id} — ${selectedAsset.name}`
-                      : "Select an asset..."}
-                  </span>
-                  <ChevronDown
-                    size={15}
-                    className={`rrt-chevron ${assetOpen ? "rrt-chevron-up" : ""}`}
-                  />
-                </div>
-                {assetOpen && (
-                  <div className="rrt-dropdown">
-                    {ASSETS.map((a) => (
-                      <div
-                        key={a.id}
-                        className={`rrt-option ${assetId === a.id ? "rrt-option-sel" : ""}`}
-                        onClick={() => {
-                          setAssetId(a.id);
-                          setAssetOpen(false);
-                          setErrors((err) => ({ ...err, asset: undefined }));
-                        }}
-                      >
-                        <span className="rrt-opt-id">{a.id}</span>
-                        <span className="rrt-opt-name">{a.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {errors.asset && <p className="rrt-err">{errors.asset}</p>}
+                  <option value="">Select a device...</option>
+                  {devices.map((device) => (
+                    <option key={device.id} value={device.id}>
+                      {device.name} ({device.device_type})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Subject */}
+              <div className="rrt-field">
+                <label className="rrt-label">
+                  <FileText size={13} />
+                  Subject <span className="rrt-required">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleInputChange}
+                  placeholder="Brief title of the issue"
+                  className={`rrt-text-input ${errors.subject ? "rrt-error-border" : ""}`}
+                />
+                {errors.subject && <p className="rrt-error-text">{errors.subject}</p>}
               </div>
 
               {/* Description */}
@@ -315,26 +294,24 @@ export default function RaiseRepairTicket() {
                   Description <span className="rrt-required">*</span>
                 </label>
                 <textarea
-                  className={`rrt-textarea ${errors.description ? "rrt-error-border" : ""}`}
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="Describe the issue in detail..."
                   rows={4}
-                  placeholder="Describe the issue in detail — what's broken, when it started, any error messages..."
-                  value={description}
-                  onChange={(e) => {
-                    setDesc(e.target.value);
-                    setErrors((err) => ({ ...err, description: undefined }));
-                  }}
+                  className={`rrt-textarea ${errors.description ? "rrt-error-border" : ""}`}
                 />
                 <div className="rrt-textarea-footer">
                   {errors.description ? (
-                    <p className="rrt-err">{errors.description}</p>
+                    <p className="rrt-error-text">{errors.description}</p>
                   ) : (
-                    <span />
+                    <span></span>
                   )}
-                  <span className="rrt-char">{description.length} chars</span>
+                  <span className="rrt-char-count">{formData.description.length} chars</span>
                 </div>
               </div>
 
-              {/* Upload Image */}
+              {/* Image Upload */}
               <div className="rrt-field">
                 <label className="rrt-label">
                   <ImageIcon size={13} />
@@ -357,10 +334,8 @@ export default function RaiseRepairTicket() {
                     className="rrt-upload-zone"
                     onClick={() => fileRef.current.click()}
                   >
-                    <Upload size={22} className="rrt-upload-icon" />
-                    <p className="rrt-upload-text">
-                      Click to upload or drag & drop
-                    </p>
+                    <Upload size={22} />
+                    <p>Click to upload or drag & drop</p>
                     <p className="rrt-upload-hint">PNG, JPG, WEBP — max 5 MB</p>
                   </div>
                 )}
@@ -373,29 +348,15 @@ export default function RaiseRepairTicket() {
                 />
               </div>
 
-              {/* Admin Remarks — read-only info block */}
-              <div className="rrt-field">
-                <label className="rrt-label">
-                  <MessageSquare size={13} />
-                  Admin Remarks
-                </label>
-                <div className="rrt-remarks-placeholder">
-                  Admin remarks will appear here after review.
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="rrt-submit"
-                disabled={submitting}
-              >
+              {/* Submit Button */}
+              <button type="submit" className="rrt-submit" disabled={submitting || loading}>
                 {submitting ? (
                   <>
                     <span className="rrt-spinner" /> Submitting...
                   </>
                 ) : (
                   <>
-                    <Wrench size={15} /> Raise Ticket
+                    <Send size={15} /> Submit Ticket
                   </>
                 )}
               </button>
@@ -404,64 +365,62 @@ export default function RaiseRepairTicket() {
         </div>
       )}
 
-      {/* ══ TICKETS VIEW ══ */}
+      {/* Tickets View */}
       {view === "tickets" && (
         <div className="rrt-tickets">
-          {tickets.length === 0 ? (
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
+              Loading tickets...
+            </div>
+          ) : myTickets.length === 0 ? (
             <div className="rrt-empty">
-              <Ticket size={48} className="rrt-empty-icon" />
-              <p>No repair tickets raised yet.</p>
+              <Ticket size={48} />
+              <p>No repair tickets yet</p>
             </div>
           ) : (
             <div className="rrt-list">
-              {tickets.map((t) => (
-                <div key={t.ticketId} className="rrt-card">
-                  {/* Card top bar */}
+              {myTickets.map((ticket) => (
+                <div key={ticket.id} className="rrt-ticket-card">
                   <div className="rrt-card-header">
-                    <div className="rrt-card-left">
-                      <span className="rrt-ticket-id">{t.ticketId}</span>
-                      <span className="rrt-card-date">
-                        {formatDate(t.createdAt)}
-                      </span>
+                    <div className="rrt-card-title">
+                      <span className="rrt-ticket-number">{ticket.ticket_number}</span>
+                      <span className="rrt-ticket-subject">{ticket.subject}</span>
                     </div>
-                    <StatusPill status={t.status} />
+                    <span
+                      className="rrt-status-badge"
+                      style={{
+                        backgroundColor:
+                          STATUS_LABELS[ticket.status]?.color || "#999",
+                      }}
+                    >
+                      {STATUS_LABELS[ticket.status]?.label || ticket.status}
+                    </span>
                   </div>
 
-                  {/* Meta row */}
-                  <div className="rrt-meta-row">
-                    <div className="rrt-meta-item">
-                      <span className="rrt-meta-label">Asset</span>
-                      <span className="rrt-meta-val">
-                        {t.assetId} — {t.assetName}
+                  <div className="rrt-card-body">
+                    <div className="rrt-meta-row">
+                      <span className="rrt-meta-item">
+                        <strong>Type:</strong> {ticket.ticket_type}
+                      </span>
+                      <span className="rrt-meta-item">
+                        <strong>Priority:</strong> {ticket.priority}
+                      </span>
+                      <span className="rrt-meta-item">
+                        <strong>Created:</strong>{" "}
+                        {new Date(ticket.created_at).toLocaleDateString()}
                       </span>
                     </div>
-                    <div className="rrt-meta-item">
-                      <span className="rrt-meta-label">Employee</span>
-                      <span className="rrt-meta-val">{t.employeeId}</span>
-                    </div>
-                  </div>
 
-                  {/* Description */}
-                  <p className="rrt-card-desc">{t.description}</p>
+                    <p className="rrt-description">{ticket.description}</p>
 
-                  {/* Admin Remark */}
-                  {t.adminRemark ? (
-                    <div className="rrt-admin-remark">
-                      <MessageSquare size={13} className="rrt-remark-icon" />
-                      <div>
-                        <span className="rrt-remark-label">Admin Remark</span>
-                        <p className="rrt-remark-text">{t.adminRemark}</p>
+                    {ticket.resolution_notes && (
+                      <div className="rrt-resolution">
+                        <p>
+                          <strong>Resolution:</strong> {ticket.resolution_notes}
+                        </p>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="rrt-no-remark">
-                      <MessageSquare size={13} />
-                      No admin remarks yet
-                    </div>
-                  )}
-
-                  {/* Stepper */}
-                  <StatusStepper status={t.status} />
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
