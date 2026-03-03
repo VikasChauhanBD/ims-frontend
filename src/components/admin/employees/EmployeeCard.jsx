@@ -11,6 +11,7 @@ export default function EmployeeCard({
     employee.status === "active"
       ? "employee-status-active"
       : "employee-status-inactive";
+  const displayStatus = employee.status || "unknown";
 
   return (
     <div className="employee-card">
@@ -29,7 +30,7 @@ export default function EmployeeCard({
           </div>
         </div>
         <span className={`employee-status ${statusClasses}`}>
-          {employee.status.charAt(0).toUpperCase() + employee.status.slice(1)}
+          {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
         </span>
       </div>
 

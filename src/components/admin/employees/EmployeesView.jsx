@@ -11,15 +11,18 @@ export default function EmployeesView({
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDepartment, setFilterDepartment] = useState("all");
 
+  // make sure we handle cases where some fields might be missing
   const departments = Array.from(
-    new Set(employees.map((emp) => emp.department)),
+    new Set(employees.map((emp) => emp.department || "")),
   );
 
   const filteredEmployees = employees.filter((employee) => {
+    const term = searchTerm.toLowerCase();
+
     const matchesSearch =
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.position.toLowerCase().includes(searchTerm.toLowerCase());
+      (employee.name || "").toLowerCase().includes(term) ||
+      (employee.email || "").toLowerCase().includes(term) ||
+      (employee.position || "").toLowerCase().includes(term);
 
     const matchesStatus =
       filterStatus === "all" || employee.status === filterStatus;
