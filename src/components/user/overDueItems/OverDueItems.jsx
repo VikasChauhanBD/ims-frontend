@@ -7,7 +7,7 @@ import {
   X,
   AlertCircle,
 } from "lucide-react";
-import { inventoryAPI } from "../../../../services/api";
+import { inventoryAPI } from "../../../services/api";
 import "./OverDueItems.css";
 
 // data will be fetched from backend
