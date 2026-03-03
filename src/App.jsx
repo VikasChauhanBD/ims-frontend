@@ -15,7 +15,12 @@ function ProtectedRoute({ children, adminOnly = false }) {
   const { isAuthenticated, loading, user } = useAuth();
   if (loading) return <div>Loading...</div>;
   if (!isAuthenticated) return <Navigate to="/login" />;
+  // if route requires admin and user is not admin, send to user dashboard
   if (adminOnly && user?.role !== "admin") return <Navigate to="/devices" />;
+  // if route is open but user is admin, redirect them to admin panel
+  if (!adminOnly && user?.role === "admin") {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
   return children;
 }
 

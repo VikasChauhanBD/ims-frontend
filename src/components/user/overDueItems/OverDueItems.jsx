@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   AlertTriangle,
   Clock,
@@ -7,40 +7,11 @@ import {
   X,
   AlertCircle,
 } from "lucide-react";
+import { inventoryAPI } from "../../../../services/api";
 import "./OverDueItems.css";
 
-const mockOverdueData = [
-  {
-    id: "ASSET-001",
-    itemName: 'MacBook Pro 16"',
-    issueDate: "2025-11-01",
-    dueDate: "2026-02-20",
-  },
-  {
-    id: "ASSET-002",
-    itemName: "iPhone 14 Pro",
-    issueDate: "2025-12-10",
-    dueDate: "2026-02-27",
-  },
-  {
-    id: "ASSET-003",
-    itemName: 'Dell Monitor 27"',
-    issueDate: "2025-10-15",
-    dueDate: "2026-01-15",
-  },
-  {
-    id: "ASSET-004",
-    itemName: "Logitech MX Keys",
-    issueDate: "2026-01-05",
-    dueDate: "2026-04-05",
-  },
-  {
-    id: "ASSET-005",
-    itemName: 'iPad Pro 12.9"',
-    issueDate: "2025-09-20",
-    dueDate: "2026-02-24",
-  },
-];
+// data will be fetched from backend
+const mockOverdueData = []; // kept for reference but not used
 
 const getStatus = (dueDateStr) => {
   const today = new Date();
@@ -86,11 +57,41 @@ const StatusBadge = ({ status }) => {
 };
 
 export default function OverDueItems() {
-  const [items, setItems] = useState(mockOverdueData);
+  const [items, setItems] = useState([]);
   const [confirmItem, setConfirmItem] = useState(null);
   const [returning, setReturning] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  useEffect(() => {
+    fetchAssignments();
+  }, []);
+
+  const fetchAssignments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await inventoryAPI.getMyAssignments();
+      const assignments = Array.isArray(res.data) ? res.data : res.data.results || [];
+      // map into items with issueDate and dueDate using expected_return_date
+      const mapped = assignments
+        .filter((a) => a.expected_return_date)
+        .map((a) => ({
+          id: a.device?.device_id || a.device?.id || "",
+          itemName: a.device?.device_name || a.device?.model || "",
+          issueDate: a.assigned_date,
+          dueDate: a.expected_return_date,
+          status: a.status,
+        }));
+      setItems(mapped);
+    } catch (err) {
+      console.error("OverDueItems fetch error:", err);
+      setError(err.message || "Failed to load overdue items");
+    } finally {
+      setLoading(false);
+    }
+  };
   const itemsWithStatus = useMemo(
     () => items.map((item) => ({ ...item, status: getStatus(item.dueDate) })),
     [items],
@@ -155,7 +156,15 @@ export default function OverDueItems() {
       </div>
 
       {/* Table */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="od-loading">
+          <p>Loading assignments...</p>
+        </div>
+      ) : error ? (
+        <div className="od-error">
+          <p>Error: {error}</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="od-empty">
           <CheckCircle size={48} className="od-empty-icon" />
           <p>No items in this category</p>

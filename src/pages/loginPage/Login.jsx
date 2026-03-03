@@ -42,12 +42,9 @@ const Login = () => {
     });
 
     if (result.success) {
-      // Check if user is admin
-      const redirectPath = result.data?.role === 'admin' 
-        ? '/admin/dashboard' 
-        : '/dashboard';
-      const from = location.state?.from?.pathname || redirectPath;
-      navigate(from, { replace: true });
+      // ignore previous location and always send user based on role
+      const redirectPath = result.data?.role === 'admin' ? '/admin/dashboard' : '/devices';
+      navigate(redirectPath, { replace: true });
     } else {
       setErrors(result.errors);
     }

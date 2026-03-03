@@ -1,68 +1,61 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { inventoryAPI } from "../../../services/api";
 import "./RequestHistory.css";
 
 const RequestHistory = () => {
-  const [tickets] = useState([
-    {
-      id: "TKT-2024-045",
-      type: "Device Request",
-      item: 'iPad Pro 12.9"',
-      requestDate: "2024-02-10",
-      status: "Approved",
-      approvedBy: "John Doe",
-      approvalDate: "2024-02-11",
-      notes: "Approved for field work requirements",
-    },
-    {
-      id: "TKT-2024-038",
-      type: "Device Replacement",
-      item: "MacBook Pro Charger",
-      requestDate: "2024-02-05",
-      status: "Pending",
-      notes: "Original charger damaged",
-    },
-    {
-      id: "TKT-2024-022",
-      type: "Software License",
-      item: "Adobe Creative Cloud",
-      requestDate: "2024-01-20",
-      status: "Declined",
-      declinedBy: "Jane Smith",
-      declineDate: "2024-01-22",
-      notes: "License already assigned to department",
-    },
-    {
-      id: "TKT-2023-156",
-      type: "Device Request",
-      item: "Wireless Mouse",
-      requestDate: "2023-12-15",
-      status: "Approved",
-      approvedBy: "Mike Johnson",
-      approvalDate: "2023-12-16",
-      notes: "Standard accessory approval",
-    },
-  ]);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
-      case "approved":
-        return "rh-status-approved";
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
+  const fetchTickets = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await inventoryAPI.getMyTickets();
+      const all = Array.isArray(res.data) ? res.data : res.data.results || [];
+      // filter out issue tickets (they are shown elsewhere)
+      const filtered = all.filter(
+        (t) => t.ticket_type !== "issue",
+      );
+      setTickets(filtered);
+    } catch (err) {
+      console.error("RequestHistory error:", err);
+      setError(err.message || "Failed to load tickets");
+    } finally {
+      setLoading(false);
+    }
+  };
+  const getStatusClass = (status) => {
+    // map backend statuses to css classes
+    switch (status) {
       case "pending":
         return "rh-status-pending";
-      case "declined":
+      case "in_progress":
+        return "rh-status-approved";
+      case "resolved":
+        return "rh-status-approved"; // reuse approved style
+      case "rejected":
         return "rh-status-declined";
+      case "closed":
+        return "rh-status-approved";
       default:
         return "";
     }
   };
 
   const getStatusIcon = (status) => {
-    switch (status.toLowerCase()) {
-      case "approved":
-        return "✓";
+    switch (status) {
       case "pending":
         return "○";
-      case "declined":
+      case "in_progress":
+      case "resolved":
+      case "closed":
+        return "✓";
+      case "rejected":
         return "✕";
       default:
         return "";
@@ -83,15 +76,16 @@ const RequestHistory = () => {
       <div className="rh-section-header">
         <h2>Request History</h2>
         <div className="rh-filter-chips">
-          <span className="rh-filter-chip approved">
-            Approved ({tickets.filter((t) => t.status === "Approved").length})
-          </span>
-          <span className="rh-filter-chip pending">
-            Pending ({tickets.filter((t) => t.status === "Pending").length})
-          </span>
-          <span className="rh-filter-chip declined">
-            Declined ({tickets.filter((t) => t.status === "Declined").length})
-          </span>
+          {Array.from(new Set(tickets.map((t) => t.status))).map((stat) => {
+            const label = stat.replace(/_/g, " ");
+            const count = tickets.filter((t) => t.status === stat).length;
+            const chipClass = stat === "pending" ? "pending" : stat === "rejected" ? "declined" : "approved";
+            return (
+              <span key={stat} className={`rh-filter-chip ${chipClass}`}>
+                {label.charAt(0).toUpperCase() + label.slice(1)} ({count})
+              </span>
+            );
+          })}
         </div>
       </div>
       <div className="rh-tickets-list">
@@ -100,7 +94,7 @@ const RequestHistory = () => {
             <div className="rh-ticket-main">
               <div className="rh-ticket-left">
                 <div
-                  className={`rh-status-badge ${getStatusColor(ticket.status)}`}
+                  className={`rh-status-badge ${getStatusClass(ticket.status)}`}
                 >
                   <span className="rh-status-icon">
                     {getStatusIcon(ticket.status)}
@@ -121,19 +115,19 @@ const RequestHistory = () => {
                       {formatDate(ticket.requestDate)}
                     </span>
                   </div>
-                  {ticket.status === "Approved" && ticket.approvalDate && (
+                  {ticket.status === "in_progress" && ticket.updated_at && (
                     <div className="rh-date-item">
-                      <span className="rh-date-label">Approved</span>
+                      <span className="rh-date-label">Updated</span>
                       <span className="rh-date-value">
-                        {formatDate(ticket.approvalDate)}
+                        {formatDate(ticket.updated_at)}
                       </span>
                     </div>
                   )}
-                  {ticket.status === "Declined" && ticket.declineDate && (
+                  {ticket.status === "rejected" && ticket.updated_at && (
                     <div className="rh-date-item">
-                      <span className="rh-date-label">Declined</span>
+                      <span className="rh-date-label">Rejected</span>
                       <span className="rh-date-value">
-                        {formatDate(ticket.declineDate)}
+                        {formatDate(ticket.updated_at)}
                       </span>
                     </div>
                   )}

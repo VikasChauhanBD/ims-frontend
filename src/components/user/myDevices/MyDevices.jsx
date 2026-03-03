@@ -1,30 +1,45 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { inventoryAPI } from "../../../services/api";
 import "./MyDevices.css";
 
 const MyDevices = () => {
-  const [devices] = useState([
-    {
-      id: "DEV-001",
-      type: "Laptop",
-      brand: "Apple",
-      model: 'MacBook Pro 16"',
-      serialNumber: "C02XG0FDH7JY",
-      assignedDate: "2023-08-15",
-      status: "Active",
-      condition: "Excellent",
-    },
-    {
-      id: "DEV-002",
-      type: "Mobile",
-      brand: "Apple",
-      model: "iPhone 14 Pro",
-      serialNumber: "F2GKJH9P0M1Q",
-      assignedDate: "2023-09-20",
-      status: "Active",
-      condition: "Good",
-    },
-  ]);
+  const [devices, setDevices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  useEffect(() => {
+    fetchAssignments();
+  }, []);
+
+  const fetchAssignments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await inventoryAPI.getMyAssignments();
+      const assignments = Array.isArray(res.data)
+        ? res.data
+        : res.data.results || [];
+
+      const devs = assignments.map((a) => ({
+        id: a.device?.id || a.device,
+        device_id: a.device?.device_id || "",
+        type: a.device?.device_type || "",
+        brand: a.device?.brand || "",
+        model: a.device?.model || a.device?.device_name || "",
+        serialNumber: a.device?.serial_number || "",
+        assignedDate: a.assigned_date,
+        status: a.status,
+        condition: a.device?.condition || "",
+      }));
+
+      setDevices(devs);
+    } catch (err) {
+      console.error("Failed to fetch assignments:", err);
+      setError(err.message || "Error loading devices");
+    } finally {
+      setLoading(false);
+    }
+  };
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -33,6 +48,22 @@ const MyDevices = () => {
       day: "numeric",
     });
   };
+
+  if (loading) {
+    return (
+      <div className="md-content-section" style={{ textAlign: "center", padding: "40px", color: "#666" }}>
+        Loading devices...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="md-content-section" style={{ textAlign: "center", padding: "40px", color: "#d32f2f" }}>
+        Error: {error}
+      </div>
+    );
+  }
 
   return (
     <div className="md-content-section">
