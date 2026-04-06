@@ -13,6 +13,8 @@ import DevicesView from "../../components/admin/devices/DevicesView";
 import EmployeesView from "../../components/admin/employees/EmployeesView";
 import AssignmentsView from "../../components/admin/assignments/AssignmentsView";
 import TicketRequestsView from "../../components/admin/ticketRequestsView/TicketRequestsView";
+import DeviceRequestsView from "../../components/admin/deviceRequestsView/DeviceRequestsView";
+import PopupModal from "../../components/common/PopupModal";
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
 import { inventoryAPI, employeeAPI } from "../../services/api";
 import { mockEmployees, mockDevices, mockAssignments } from "../../assets/data/mockData";
@@ -29,8 +31,15 @@ function Admin() {
   const [employees, setEmployees] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [tickets, setTickets] = useState([]);
+  const [deviceRequests, setDeviceRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [popup, setPopup] = useState({
+    open: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   // Fetch data from backend - poll every 5 seconds for updates
   useEffect(() => {
@@ -74,9 +83,21 @@ function Admin() {
         : ticketsResponse.data.results || [];
       setTickets(fetchedTickets);
 
+      // Fetch device requests
+      const deviceRequestsResponse = await inventoryAPI.getDeviceRequests();
+      const fetchedDeviceRequests = Array.isArray(deviceRequestsResponse.data)
+        ? deviceRequestsResponse.data
+        : deviceRequestsResponse.data.results || [];
+      setDeviceRequests(fetchedDeviceRequests);
+
       // Notify if new ticket received
       if (fetchedTickets.length > previousTicketsLengthRef.current) {
-        alert(`New ticket request received! (Total: ${fetchedTickets.length})`);
+        setPopup({
+          open: true,
+          title: "New Ticket Received",
+          message: `New ticket request received! Total: ${fetchedTickets.length}`,
+          type: "info",
+        });
       }
       previousTicketsLengthRef.current = fetchedTickets.length;
 
@@ -95,7 +116,12 @@ function Admin() {
       fetchData();
     } catch (err) {
       console.error("Failed to create device:", err);
-      alert("Error creating device");
+      setPopup({
+        open: true,
+        title: "Device Creation Failed",
+        message: "Error creating device. Please try again.",
+        type: "error",
+      });
     }
   };
 
@@ -176,6 +202,7 @@ function Admin() {
     { id: "employees", label: "Employees", icon: Users },
     { id: "assignments", label: "Assignments", icon: FileText },
     { id: "ticketrequests", label: "Ticket Requests", icon: Ticket },
+    { id: "devicerequests", label: "Device Requests", icon: Ticket },
   ];
 
   return (
@@ -243,7 +270,25 @@ function Admin() {
             onRefresh={fetchData}
           />
         )}
+
+        {activeTab === "devicerequests" && (
+          <DeviceRequestsView
+            requests={deviceRequests}
+            setRequests={setDeviceRequests}
+            devices={devices}
+            employees={employees}
+            onRefresh={fetchData}
+          />
+        )}
       </div>
+
+      <PopupModal
+        open={popup.open}
+        title={popup.title}
+        message={popup.message}
+        type={popup.type}
+        onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
+      />
 
       {/* Required by React Router for nested routes */}
       <Outlet />

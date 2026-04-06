@@ -18,6 +18,7 @@ import OverDueItems from "../../components/user/overDueItems/OverDueItems";
 import ReportIssue from "../../components/user/reportIssue/ReportIssue";
 import RaiseRepairTicket from "../../components/user/raiseRepairTicket/RaiseRepairTicket";
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
+import PopupModal from "../../components/common/PopupModal";
 import { inventoryAPI, authAPI } from "../../services/api";
 import { mockDevices, mockAssignments } from "../../assets/data/mockData";
 import "./Receiver.css";
@@ -35,6 +36,12 @@ function Receiver() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [popup, setPopup] = useState({
+    open: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   // Fetch data from backend - poll every 5 seconds for updates
   useEffect(() => {
@@ -91,7 +98,12 @@ function Receiver() {
       // Notify if new ticket received
       if (fetchedTickets.length > previousTicketsLengthRef.current) {
         const newCount = fetchedTickets.length - previousTicketsLengthRef.current;
-        alert(`You have ${newCount} new ticket update(s)!`);
+        setPopup({
+          open: true,
+          title: "Ticket Update",
+          message: `You have ${newCount} new ticket update(s)!`,
+          type: "info",
+        });
       }
       previousTicketsLengthRef.current = fetchedTickets.length;
 
@@ -221,6 +233,14 @@ function Receiver() {
 
         {activeTab === "raiserepairticket" && <RaiseRepairTicket onTicketCreated={fetchData} />}
       </div>
+
+      <PopupModal
+        open={popup.open}
+        title={popup.title}
+        message={popup.message}
+        type={popup.type}
+        onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
+      />
 
       {/* Required by React Router for nested routes */}
       <Outlet />

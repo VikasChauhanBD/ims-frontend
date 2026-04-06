@@ -350,6 +350,7 @@ const Signup = () => {
     password_confirm: '',
     first_name: '',
     last_name: '',
+    hrms_id: '',
     department: '',
     phone_number: '',
   });
@@ -494,6 +495,25 @@ const Signup = () => {
           </div>
 
           <div className="form-row">
+            {/* HRMS ID */}
+            <div className="form-group">
+              <label htmlFor="hrms_id" className="form-label">
+                HRMS ID
+              </label>
+              <input
+                id="hrms_id"
+                name="hrms_id"
+                type="text"
+                value={formData.hrms_id}
+                onChange={handleChange}
+                className={`form-input ${errors.hrms_id ? 'form-input-error' : ''}`}
+                placeholder="Enter your HRMS ID"
+              />
+              {errors.hrms_id && (
+                <p className="error-text">{errors.hrms_id}</p>
+              )}
+            </div>
+
             {/* Department */}
             <div className="form-group">
               <label htmlFor="department" className="form-label">
@@ -512,22 +532,6 @@ const Signup = () => {
                   </option>
                 ))}
               </select>
-            </div>
-
-            {/* Phone Number */}
-            <div className="form-group">
-              <label htmlFor="phone_number" className="form-label">
-                Phone Number
-              </label>
-              <input
-                id="phone_number"
-                name="phone_number"
-                type="tel"
-                value={formData.phone_number}
-                onChange={handleChange}
-                className="form-input"
-                placeholder="+1234567890"
-              />
             </div>
           </div>
 

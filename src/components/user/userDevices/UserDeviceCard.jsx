@@ -7,6 +7,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { inventoryAPI } from "../../../services/api";
+import PopupModal from "../../common/PopupModal";
 import "./UserDeviceCard.css";
 
 export default function UserDeviceCard({
@@ -17,10 +18,15 @@ export default function UserDeviceCard({
   onTicketCreated,
 }) {
   const [showModal, setShowModal] = useState(false);
-  const [ticketData, setTicketData] = useState({
-    name: "",
+  const [requestData, setRequestData] = useState({
     reason: "",
     priority: "Medium",
+  });
+  const [popup, setPopup] = useState({
+    open: false,
+    title: "",
+    message: "",
+    type: "info",
   });
 
   const statusColors = {
@@ -37,24 +43,34 @@ export default function UserDeviceCard({
     poor: "condition-poor",
   };
 
-  const handleSubmitTicket = async () => {
+  const handleSubmitDeviceRequest = async () => {
     try {
       const payload = {
-        ticket_type: "new_device",
-        priority: ticketData.priority.toLowerCase(),
-        subject: `Request ${device.brand} ${device.model}`,
-        description: ticketData.reason,
-        device: device.id,
+        device_type: device.device_type,
+        brand: device.brand,
+        model: device.model,
+        specifications: device.specifications || {},
+        reason: requestData.reason,
       };
-      await inventoryAPI.createTicket(payload);
+      await inventoryAPI.createDeviceRequest(payload);
       if (onTicketCreated) onTicketCreated();
-      alert("Your request has been submitted!");
+      setPopup({
+        open: true,
+        title: "Request Submitted",
+        message: "Your device request has been submitted successfully.",
+        type: "success",
+      });
     } catch (err) {
       console.error("Device request error", err);
-      alert("Failed to submit request");
+      setPopup({
+        open: true,
+        title: "Request Failed",
+        message: "Failed to submit device request. Please try again.",
+        type: "error",
+      });
     } finally {
       setShowModal(false);
-      setTicketData({ name: "", reason: "", priority: "Medium" });
+      setRequestData({ reason: "", priority: "Medium" });
     }
   };
 
@@ -62,7 +78,7 @@ export default function UserDeviceCard({
     <>
       <div className="user-device-card">
         <div className="user-device-image">
-          <img src={device.image} alt="" />
+          <img src={device.image || device.image_url || "https://via.placeholder.com/320x180?text=No+Image"} alt="" />
         </div>
 
         <div className="user-device-card-header">
@@ -137,32 +153,21 @@ export default function UserDeviceCard({
             <h2>Request Device</h2>
 
             <div className="form-group">
-              <label>Your Name</label>
-              <input
-                type="text"
-                value={ticketData.name}
-                onChange={(e) =>
-                  setTicketData({ ...ticketData, name: e.target.value })
-                }
-              />
-            </div>
-
-            <div className="form-group">
               <label>Reason for Request</label>
               <textarea
-                value={ticketData.reason}
+                value={requestData.reason}
                 onChange={(e) =>
-                  setTicketData({ ...ticketData, reason: e.target.value })
+                  setRequestData({ ...requestData, reason: e.target.value })
                 }
               ></textarea>
             </div>
 
             <div className="form-group">
-              <label>Priority</label>
+              <label>Request Priority</label>
               <select
-                value={ticketData.priority}
+                value={requestData.priority}
                 onChange={(e) =>
-                  setTicketData({ ...ticketData, priority: e.target.value })
+                  setRequestData({ ...requestData, priority: e.target.value })
                 }
               >
                 <option>Low</option>
@@ -178,13 +183,21 @@ export default function UserDeviceCard({
               >
                 Cancel
               </button>
-              <button className="btn-submit" onClick={handleSubmitTicket}>
+              <button className="btn-submit" onClick={handleSubmitDeviceRequest}>
                 Submit Request
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <PopupModal
+        open={popup.open}
+        title={popup.title}
+        message={popup.message}
+        type={popup.type}
+        onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
+      />
     </>
   );
 }

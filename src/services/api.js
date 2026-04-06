@@ -143,6 +143,15 @@ export const inventoryAPI = {
   resolveTicket: (id, notes) =>
     api.post(`/inventory/tickets/${id}/resolve/`, { resolution_notes: notes }),
   getMyTickets: () => api.get("/inventory/tickets/my_tickets/"),
+
+  // Device requests
+  getDeviceRequests: (params) => api.get("/inventory/device-requests/", { params }),
+  getDeviceRequest: (id) => api.get(`/inventory/device-requests/${id}/`),
+  createDeviceRequest: (data) => api.post("/inventory/device-requests/", data),
+  approveDeviceRequest: (id) => api.post(`/inventory/device-requests/${id}/approve/`),
+  rejectDeviceRequest: (id, reason) =>
+    api.post(`/inventory/device-requests/${id}/reject/`, { reason }),
+  getMyDeviceRequests: () => api.get("/inventory/device-requests/"),
 };
 
 // Employee APIs

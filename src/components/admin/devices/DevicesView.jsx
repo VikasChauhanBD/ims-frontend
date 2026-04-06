@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Search, Filter, Plus, X } from "lucide-react";
 import DeviceCard from "./DeviceCard";
+import PopupModal from "../../common/PopupModal";
 import "./DevicesView.css";
 
 export default function DevicesView({
@@ -27,6 +28,12 @@ export default function DevicesView({
     condition: "excellent",
     notes: "",
   });
+  const [popup, setPopup] = useState({
+    open: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   const filteredDevices = deviceList.filter((device) => {
     const matchesSearch =
@@ -44,7 +51,12 @@ export default function DevicesView({
 
   const handleAddDevice = () => {
     if (!newDevice.brand || !newDevice.model || !newDevice.serial_number) {
-      alert("Please fill required fields: Brand, Model, Serial Number");
+      setPopup({
+        open: true,
+        title: "Missing Required Fields",
+        message: "Please fill required fields: Brand, Model, Serial Number.",
+        type: "warning",
+      });
       return;
     }
 
@@ -286,6 +298,14 @@ export default function DevicesView({
           </div>
         </div>
       )}
+
+      <PopupModal
+        open={popup.open}
+        title={popup.title}
+        message={popup.message}
+        type={popup.type}
+        onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
+      />
     </div>
   );
 }
