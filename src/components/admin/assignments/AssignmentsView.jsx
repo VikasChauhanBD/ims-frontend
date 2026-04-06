@@ -8,20 +8,18 @@ export default function AssignmentsView({ assignments, onReturnDevice }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
+  const term = searchTerm.toLowerCase();
   const filteredAssignments = assignments.filter((assignment) => {
+    const employeeName = assignment.employee?.name || "";
+    const deviceBrand = assignment.device?.brand || "";
+    const deviceModel = assignment.device?.model || "";
+    const deviceSerial = assignment.device?.serial_number || "";
+
     const matchesSearch =
-      assignment.employee?.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      assignment.device?.brand
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      assignment.device?.model
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      assignment.device?.serial_number
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+      employeeName.toLowerCase().includes(term) ||
+      deviceBrand.toLowerCase().includes(term) ||
+      deviceModel.toLowerCase().includes(term) ||
+      deviceSerial.toLowerCase().includes(term);
 
     const matchesStatus =
       filterStatus === "all" || assignment.status === filterStatus;
