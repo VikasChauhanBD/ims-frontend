@@ -44,6 +44,16 @@ export default function UserDeviceCard({
   };
 
   const handleSubmitDeviceRequest = async () => {
+    if (!requestData.reason.trim()) {
+      setPopup({
+        open: true,
+        title: "Validation Failed",
+        message: "Please provide a reason for the device request.",
+        type: "error",
+      });
+      return;
+    }
+
     try {
       const payload = {
         device_type: device.device_type,
@@ -62,10 +72,14 @@ export default function UserDeviceCard({
       });
     } catch (err) {
       console.error("Device request error", err);
+      const serverMessage =
+        err.response?.data?.message || err.response?.data?.detail ||
+        err.message ||
+        "Failed to submit device request. Please try again.";
       setPopup({
         open: true,
         title: "Request Failed",
-        message: "Failed to submit device request. Please try again.",
+        message: serverMessage,
         type: "error",
       });
     } finally {
