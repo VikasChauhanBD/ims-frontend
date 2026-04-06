@@ -16,6 +16,10 @@ export default function DeviceRequestsView({
     message: "",
     type: "info",
   });
+  const [processingRequestId, setProcessingRequestId] = useState(null);
+  const [processingAction, setProcessingAction] = useState(null);
+  const [confirmRequest, setConfirmRequest] = useState(null);
+
   const getDeviceSummary = (request) => {
     if (!request) return "N/A";
     return `${request.brand || ""} ${request.model || ""}`.trim();
@@ -30,12 +34,16 @@ export default function DeviceRequestsView({
   };
 
   const handleAction = async (requestId, action) => {
+    setProcessingRequestId(requestId);
+    setProcessingAction(action);
+
     try {
       if (action === "approve") {
         await inventoryAPI.approveDeviceRequest(requestId);
       } else {
         await inventoryAPI.rejectDeviceRequest(requestId, "Rejected by admin");
       }
+
       setRequests((prev) =>
         prev.map((req) =>
           req.id === requestId
@@ -46,16 +54,44 @@ export default function DeviceRequestsView({
             : req,
         ),
       );
+
       if (onRefresh) onRefresh();
+
+      setPopup({
+        open: true,
+        title: action === "approve" ? "Request Approved" : "Request Rejected",
+        message:
+          action === "approve"
+            ? "Device is assigned to user. Please complete the undertaking process."
+            : "The device request has been rejected.",
+        type: action === "approve" ? "success" : "info",
+      });
     } catch (err) {
       console.error("Failed to update device request", err);
+      const serverMessage =
+        err.response?.data?.message || err.response?.data?.detail ||
+        err.message ||
+        "Unable to update device request status.";
       setPopup({
         open: true,
         title: "Update Failed",
-        message: "Unable to update device request status.",
+        message: serverMessage,
         type: "error",
       });
+    } finally {
+      setProcessingRequestId(null);
+      setProcessingAction(null);
+      setConfirmRequest(null);
     }
+  };
+
+  const handleApproveClick = (request) => {
+    setConfirmRequest(request);
+  };
+
+  const handleConfirmApprove = () => {
+    if (!confirmRequest) return;
+    handleAction(confirmRequest.id, "approve");
   };
 
   return (
@@ -70,6 +106,7 @@ export default function DeviceRequestsView({
         {requests.map((request) => {
           const statusClass = request.status === "approved" ? "approved" : request.status;
           const displayStatus = statusClass.replace(/_/g, " ");
+          const isProcessing = processingRequestId === request.id;
           return (
             <div key={request.id} className="ticket-card">
               <h3 className="ticket-title">
@@ -93,25 +130,73 @@ export default function DeviceRequestsView({
               </p>
 
               <div className="ticket-actions">
-                <button
-                  className="btn-approve"
-                  onClick={() => handleAction(request.id, "approve")}
-                  disabled={request.status !== "pending"}
-                >
-                  Approve
-                </button>
-                <button
-                  className="btn-reject"
-                  onClick={() => handleAction(request.id, "reject")}
-                  disabled={request.status !== "pending"}
-                >
-                  Reject
-                </button>
+                {request.status === "pending" ? (
+                  <>
+                    <button
+                      className="btn-approve"
+                      onClick={() => handleApproveClick(request)}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing && processingAction === "approve"
+                        ? "Approving..."
+                        : "Approve"}
+                    </button>
+                    <button
+                      className="btn-reject"
+                      onClick={() => handleAction(request.id, "reject")}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing && processingAction === "reject"
+                        ? "Rejecting..."
+                        : "Reject"}
+                    </button>
+                  </>
+                ) : request.status === "approved" ? (
+                  <button
+                    className="btn-info"
+                    onClick={() =>
+                      setPopup({
+                        open: true,
+                        title: "Undertaking Process",
+                        message:
+                          "The device is approved and assigned. Please complete the undertaking process by documenting the handover and confirming receipt.",
+                        type: "info",
+                      })
+                    }
+                  >
+                    Complete Undertaking
+                  </button>
+                ) : (
+                  <button className="btn-info" disabled>
+                    No Actions
+                  </button>
+                )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {confirmRequest && (
+        <PopupModal
+          open={true}
+          title="Confirm Approval"
+          message="Approving this request will assign the device to the user. Please complete the undertaking process."
+          type="info"
+          actions={[
+            {
+              label: "Cancel",
+              variant: "secondary",
+              onClick: () => setConfirmRequest(null),
+            },
+            {
+              label: "Confirm",
+              onClick: handleConfirmApprove,
+            },
+          ]}
+          onClose={() => setConfirmRequest(null)}
+        />
+      )}
       <PopupModal
         open={popup.open}
         title={popup.title}

@@ -28,6 +28,7 @@ export default function UserDeviceCard({
     message: "",
     type: "info",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const statusColors = {
     available: "status-available",
@@ -54,6 +55,7 @@ export default function UserDeviceCard({
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const payload = {
         device_type: device.device_type,
@@ -70,6 +72,8 @@ export default function UserDeviceCard({
         message: "Your device request has been submitted successfully.",
         type: "success",
       });
+      setShowModal(false);
+      setRequestData({ reason: "", priority: "Medium" });
     } catch (err) {
       console.error("Device request error", err);
       const serverMessage =
@@ -83,8 +87,7 @@ export default function UserDeviceCard({
         type: "error",
       });
     } finally {
-      setShowModal(false);
-      setRequestData({ reason: "", priority: "Medium" });
+      setIsSubmitting(false);
     }
   };
 
@@ -194,11 +197,16 @@ export default function UserDeviceCard({
               <button
                 className="btn-cancel"
                 onClick={() => setShowModal(false)}
+                disabled={isSubmitting}
               >
                 Cancel
               </button>
-              <button className="btn-submit" onClick={handleSubmitDeviceRequest}>
-                Submit Request
+              <button
+                className="btn-submit"
+                onClick={handleSubmitDeviceRequest}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Submitting..." : "Submit Request"}
               </button>
             </div>
           </div>
