@@ -25,9 +25,9 @@ export default function EmployeesView({
     const term = searchTerm.toLowerCase();
 
     const matchesSearch =
-      (employee.name || "").toLowerCase().includes(term) ||
+      (employee.full_name || "").toLowerCase().includes(term) ||
       (employee.email || "").toLowerCase().includes(term) ||
-      (employee.position || "").toLowerCase().includes(term);
+      (employee.role || "").toLowerCase().includes(term);
 
     // Handle status filter based on is_active boolean
     const matchesStatus =
@@ -62,7 +62,7 @@ export default function EmployeesView({
           <Search className="employee-search-icon" />
           <input
             type="text"
-            placeholder="Search employees by name, email, or position..."
+            placeholder="Search employees by name, email, or role..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Search, Filter, Plus, X } from "lucide-react";
 import DeviceCard from "./DeviceCard";
 import PopupModal from "../../common/PopupModal";
+import { uploadImage, validateImageFile } from "../../../services/imageUpload";
 import "./DevicesView.css";
 
 export default function DevicesView({
@@ -21,13 +22,15 @@ export default function DevicesView({
     device_type: "laptop",
     brand: "",
     model: "",
-    image: "",
+    image_url: "",
     serial_number: "",
     purchase_date: "",
     status: "available",
     condition: "excellent",
     notes: "",
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [popup, setPopup] = useState({
     open: false,
     title: "",
@@ -49,7 +52,7 @@ export default function DevicesView({
     return matchesSearch && matchesStatus && matchesType;
   });
 
-  const handleAddDevice = () => {
+  const handleAddDevice = async () => {
     if (!newDevice.brand || !newDevice.model || !newDevice.serial_number) {
       setPopup({
         open: true,
@@ -60,12 +63,54 @@ export default function DevicesView({
       return;
     }
 
-    // send raw newDevice to parent; parent will persist and refresh
-    if (onAddDevice) onAddDevice(newDevice);
+    // Upload image if one is selected
+    let deviceData = { ...newDevice };
+    if (imageFile) {
+      setUploadingImage(true);
+      try {
+        const validation = validateImageFile(imageFile);
+        if (!validation.valid) {
+          setPopup({
+            open: true,
+            title: "Invalid Image",
+            message: validation.error,
+            type: "error",
+          });
+          setUploadingImage(false);
+          return;
+        }
 
-    // optimistically update local list
+        const imageUrl = await uploadImage(imageFile);
+        deviceData.image_url = imageUrl;
+      } catch (err) {
+        console.error("Failed to upload image:", err);
+        setPopup({
+          open: true,
+          title: "Image Upload Failed",
+          message: "Failed to upload image. Device creation cancelled.",
+          type: "error",
+        });
+        setUploadingImage(false);
+        return;
+      } finally {
+        setUploadingImage(false);
+      }
+    }
+
+    // Auto-generate device_id and name if not provided
+    if (!deviceData.device_id) {
+      deviceData.device_id = `DEV-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    }
+    if (!deviceData.name) {
+      deviceData.name = `${deviceData.brand} ${deviceData.model}`;
+    }
+
+    // Send device to parent; parent will persist and refresh
+    if (onAddDevice) onAddDevice(deviceData);
+
+    // Optimistically update local list
     const newDeviceWithId = {
-      ...newDevice,
+      ...deviceData,
       id: `temp-${Date.now()}`,
       created_at: new Date().toISOString(),
     };
@@ -76,20 +121,23 @@ export default function DevicesView({
       device_type: "laptop",
       brand: "",
       model: "",
-      image: "",
+      image_url: "",
       serial_number: "",
       purchase_date: "",
       status: "available",
       condition: "excellent",
       notes: "",
     });
+    setImageFile(null);
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const imageURL = URL.createObjectURL(file);
-      setNewDevice({ ...newDevice, image: imageURL });
+      setImageFile(file);
+      // Create a preview URL for display purposes only
+      const previewURL = URL.createObjectURL(file);
+      setNewDevice({ ...newDevice, image_url: previewURL });
     }
   };
 
@@ -295,11 +343,12 @@ export default function DevicesView({
                 type="file"
                 accept="image/*"
                 onChange={handleImageChange}
+                disabled={uploadingImage}
               />
 
-              {newDevice.image && (
+              {newDevice.image_url && (
                 <img
-                  src={newDevice.image}
+                  src={newDevice.image_url}
                   alt="Preview"
                   style={{
                     marginTop: "10px",
@@ -316,11 +365,16 @@ export default function DevicesView({
               <button
                 className="btn-cancel"
                 onClick={() => setShowModal(false)}
+                disabled={uploadingImage}
               >
                 Cancel
               </button>
-              <button className="btn-submit" onClick={handleAddDevice}>
-                Add Device
+              <button 
+                className="btn-submit" 
+                onClick={handleAddDevice}
+                disabled={uploadingImage}
+              >
+                {uploadingImage ? "Uploading Image..." : "Add Device"}
               </button>
             </div>
           </div>

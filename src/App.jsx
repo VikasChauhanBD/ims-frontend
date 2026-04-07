@@ -9,6 +9,7 @@ import Receiver from "./pages/userPage/Receiver";
 import EmployeeProfile from "./components/user/profile/EmployeeProfile";
 import AdminProfile from "./components/admin/profile/AdminProfile";
 import "./App.css";
+import ConsentForm from "./components/common/ConsentForm";
 
 // Protected Route
 function ProtectedRoute({ children, adminOnly = false }) {
@@ -124,7 +125,9 @@ function App() {
             <Route path="assignments" element={null} />
             <Route path="ticketrequests" element={null} />
             <Route path="devicerequests" element={null} />
+          
           </Route>
+          <Route path="consent" element={ConsentForm} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

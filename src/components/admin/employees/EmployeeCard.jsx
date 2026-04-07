@@ -25,8 +25,8 @@ export default function EmployeeCard({
             )}
           </div>
           <div>
-            <h3>{employee.name}</h3>
-            <p>{employee.position}</p>
+            <h3>{employee.full_name}</h3>
+            <p>{employee.role}</p>
           </div>
         </div>
         <span className={`employee-status ${statusClasses}`}>

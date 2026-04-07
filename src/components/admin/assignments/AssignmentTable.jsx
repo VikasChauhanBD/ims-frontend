@@ -60,7 +60,7 @@ export default function AssignmentTable({ assignments = [], onReturn }) {
                     <User className="assignments-employee-icon" />
                     <div>
                       <p className="assignments-employee-name">
-                        {assignment.employee?.name}
+                        {assignment.employee?.full_name}
                       </p>
                       <p className="assignments-employee-department">
                         {assignment.employee?.department}
