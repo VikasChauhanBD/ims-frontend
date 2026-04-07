@@ -109,6 +109,76 @@
   }
 }
 
+/* Photo Upload Button */
+.upload-photo-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: 3px solid white;
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.upload-photo-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.upload-photo-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Upload Messages */
+.upload-message {
+  position: absolute;
+  bottom: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  animation: slideUp 0.3s ease-out;
+  z-index: 10;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.upload-message.success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #86efac;
+}
+
+.upload-message.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
 .user-info-section {
   flex: 1;
   display: flex;

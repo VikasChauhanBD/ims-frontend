@@ -43,14 +43,47 @@ function Receiver() {
     type: "info",
   });
 
-  // Fetch data from backend - poll every 5 seconds for updates
+  // Fetch data from backend - optimized polling with longer intervals
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
+    // Use longer intervals for better performance: 30 seconds for general data
+    const mainInterval = setInterval(fetchData, 30000);
+    // Faster polling for critical updates like new tickets (15 seconds)
+    const ticketInterval = setInterval(checkForNewTickets, 15000);
+    
+    return () => {
+      clearInterval(mainInterval);
+      clearInterval(ticketInterval);
+    };
   }, []);
 
   const previousTicketsLengthRef = useRef(0);
+
+  // Optimized: Check only for new tickets (lightweight polling)
+  const checkForNewTickets = async () => {
+    try {
+      const ticketsResponse = await inventoryAPI.getTickets();
+      const fetchedTickets = Array.isArray(ticketsResponse.data)
+        ? ticketsResponse.data
+        : ticketsResponse.data.results || [];
+      
+      setTickets(fetchedTickets);
+
+      // Notify if new ticket received
+      if (fetchedTickets.length > previousTicketsLengthRef.current) {
+        const newCount = fetchedTickets.length - previousTicketsLengthRef.current;
+        setPopup({
+          open: true,
+          title: "Ticket Update",
+          message: `You have ${newCount} new ticket update(s)!`,
+          type: "info",
+        });
+      }
+      previousTicketsLengthRef.current = fetchedTickets.length;
+    } catch (err) {
+      console.error("Error checking for new tickets:", err);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -90,21 +123,12 @@ function Receiver() {
       }
       setAssignments(fetchedAssigns);
 
-      // Fetch tickets
+      // Fetch tickets (will also be fetched by checkForNewTickets)
       const ticketsResponse = await inventoryAPI.getTickets();
-      const fetchedTickets = Array.isArray(ticketsResponse.data) ? ticketsResponse.data : ticketsResponse.data.results || [];
+      const fetchedTickets = Array.isArray(ticketsResponse.data)
+        ? ticketsResponse.data
+        : ticketsResponse.data.results || [];
       setTickets(fetchedTickets);
-
-      // Notify if new ticket received
-      if (fetchedTickets.length > previousTicketsLengthRef.current) {
-        const newCount = fetchedTickets.length - previousTicketsLengthRef.current;
-        setPopup({
-          open: true,
-          title: "Ticket Update",
-          message: `You have ${newCount} new ticket update(s)!`,
-          type: "info",
-        });
-      }
       previousTicketsLengthRef.current = fetchedTickets.length;
 
       setLoading(false);

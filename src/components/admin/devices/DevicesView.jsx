@@ -18,7 +18,7 @@ export default function DevicesView({
 
   const [showModal, setShowModal] = useState(false);
   const [newDevice, setNewDevice] = useState({
-    device_type: "phone",
+    device_type: "laptop",
     brand: "",
     model: "",
     image: "",
@@ -73,7 +73,7 @@ export default function DevicesView({
 
     setShowModal(false);
     setNewDevice({
-      device_type: "phone",
+      device_type: "laptop",
       brand: "",
       model: "",
       image: "",
@@ -138,7 +138,21 @@ export default function DevicesView({
             >
               <option value="all">All Types</option>
               <option value="laptop">Laptops</option>
+              <option value="desktop">Desktops</option>
+              <option value="pc">PCs</option>
+              <option value="monitor">Monitors</option>
+              <option value="keyboard">Keyboards</option>
+              <option value="mouse">Mice</option>
+              <option value="headset">Headsets</option>
+              <option value="headphone">Headphones</option>
               <option value="phone">Phones</option>
+              <option value="tablet">Tablets</option>
+              <option value="cable">Cables</option>
+              <option value="charger">Chargers</option>
+              <option value="pendrive">Pendrives</option>
+              <option value="hard_drive">Hard Drives</option>
+              <option value="accessories">Accessories</option>
+              <option value="other">Others</option>
             </select>
           </div>
         </div>
@@ -187,8 +201,22 @@ export default function DevicesView({
                   setNewDevice({ ...newDevice, device_type: e.target.value })
                 }
               >
-                <option value="phone">Phone</option>
                 <option value="laptop">Laptop</option>
+                <option value="desktop">Desktop</option>
+                <option value="pc">PC</option>
+                <option value="monitor">Monitor</option>
+                <option value="keyboard">Keyboard</option>
+                <option value="mouse">Mouse</option>
+                <option value="headset">Headset</option>
+                <option value="headphone">Headphone</option>
+                <option value="phone">Phone</option>
+                <option value="tablet">Tablet</option>
+                <option value="cable">Cable</option>
+                <option value="charger">Charger</option>
+                <option value="pendrive">Pendrive</option>
+                <option value="hard_drive">Hard Drive</option>
+                <option value="accessories">Accessories</option>
+                <option value="other">Other</option>
               </select>
 
               <label>Brand *</label>

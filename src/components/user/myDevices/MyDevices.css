@@ -146,6 +146,121 @@
   font-family: "SF Mono", "Monaco", "Courier New", monospace;
 }
 
+/* Return Due Countdown */
+.md-return-countdown {
+  background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
+  border: 2px solid #0284c7;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.md-return-countdown.urgent {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #d97706;
+}
+
+.md-return-countdown.urgent .countdown-header {
+  color: #92400e;
+}
+
+.md-return-countdown.overdue {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border-color: #dc2626;
+}
+
+.md-return-countdown.overdue .countdown-header {
+  color: #7f1d1d;
+}
+
+.countdown-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0c4a6e;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.countdown-timer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.countdown-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0c4a6e;
+  font-family: "SF Mono", "Monaco", "Courier New", monospace;
+}
+
+.md-return-countdown.urgent .countdown-value {
+  color: #92400e;
+}
+
+.md-return-countdown.overdue .countdown-value {
+  color: #7f1d1d;
+}
+
+.return-date {
+  font-size: 12px;
+  color: #0c4a6e;
+  font-weight: 500;
+}
+
+.md-return-countdown.urgent .return-date {
+  color: #92400e;
+}
+
+.countdown-overdue {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #7f1d1d;
+}
+
+.btn-extend {
+  padding: 6px 12px;
+  background: #0284c7;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+
+.btn-extend:hover {
+  background: #0369a1;
+  transform: translateY(-1px);
+}
+
+.md-return-countdown.urgent .btn-extend {
+  background: #d97706;
+}
+
+.md-return-countdown.urgent .btn-extend:hover {
+  background: #b45309;
+}
+
+.md-return-countdown.overdue .btn-extend {
+  background: #dc2626;
+}
+
+.md-return-countdown.overdue .btn-extend:hover {
+  background: #b91c1c;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .md-devices-grid {

@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../../AuthContext/AuthContext";
 import { authAPI } from "../../../services/api";
+import { uploadImage, validateImageFile } from "../../../services/imageUpload";
+import { Upload, X } from "lucide-react";
 import "./EmployeeProfile.css";
 import AnimatedBackground from "../../animatedBackground/AnimatedBackground";
 import ActivityLog from "../activityLog/ActivityLog";
@@ -10,6 +12,10 @@ const EmployeeProfile = () => {
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchProfile();
@@ -36,6 +42,43 @@ const EmployeeProfile = () => {
       month: "short",
       day: "numeric",
     });
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      setUploadError(validation.error);
+      return;
+    }
+
+    setUploading(true);
+    setUploadError(null);
+    setUploadSuccess(false);
+
+    try {
+      const imageUrl = await uploadImage(file);
+      
+      // Update profile on server
+      const response = await authAPI.updateProfile({
+        profile_picture_url: imageUrl,
+      });
+      
+      setEmployee(response.data);
+      setUploadSuccess(true);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setUploadSuccess(false);
+      }, 3000);
+    } catch (err) {
+      setUploadError(err.message || "Failed to upload image");
+      console.error("Upload error:", err);
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (loading) {
@@ -82,7 +125,7 @@ const EmployeeProfile = () => {
         <div className="user-profile-info-card">
           <div className="user-avatar-section">
             <img
-              src={employee.profile_picture || avatarUrl}
+              src={employee.profile_picture_url || avatarUrl}
               alt={employee.first_name}
               className="user-avatar"
               onError={(e) => {
@@ -90,6 +133,36 @@ const EmployeeProfile = () => {
               }}
             />
             <div className="user-status-indicator"></div>
+            
+            {/* Photo Upload Button */}
+            <button
+              className="upload-photo-btn"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              title="Click to upload a new photo"
+            >
+              <Upload size={16} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              style={{ display: "none" }}
+            />
+            
+            {/* Upload Messages */}
+            {uploadError && (
+              <div className="upload-message error">
+                <X size={14} />
+                {uploadError}
+              </div>
+            )}
+            {uploadSuccess && (
+              <div className="upload-message success">
+                ✓ Photo updated successfully
+              </div>
+            )}
           </div>
           <div className="user-info-section">
             <h1 className="user-employee-name">

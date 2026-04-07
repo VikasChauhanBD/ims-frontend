@@ -11,7 +11,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onEmployeeAdded }) {
     email: "",
     phone_number: "",
     department: "",
-    position: "",
+    role: "employee",
     password: "",
     confirm_password: "",
   });
@@ -44,7 +44,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onEmployeeAdded }) {
       newErrors.email = "Enter a valid email";
     }
     if (!formData.department.trim()) newErrors.department = "Department is required";
-    if (!formData.position.trim()) newErrors.position = "Position is required";
+    if (!formData.role) newErrors.role = "Role is required";
     if (!formData.password) newErrors.password = "Password is required";
     if (formData.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
@@ -78,7 +78,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onEmployeeAdded }) {
         email: "",
         phone_number: "",
         department: "",
-        position: "",
+        role: "employee",
         password: "",
         confirm_password: "",
       });
@@ -204,18 +204,20 @@ export default function AddEmployeeModal({ isOpen, onClose, onEmployeeAdded }) {
             </div>
 
             <div className="form-group">
-              <label htmlFor="position">Position *</label>
-              <input
-                type="text"
-                id="position"
-                name="position"
-                value={formData.position}
+              <label htmlFor="role">Role *</label>
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
                 onChange={handleChange}
-                className={errors.position ? "input-error" : ""}
-                placeholder="Senior Developer"
-              />
-              {errors.position && (
-                <span className="field-error">{errors.position}</span>
+                className={errors.role ? "input-error" : ""}
+              >
+                <option value="employee">Employee</option>
+                <option value="manager">Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+              {errors.role && (
+                <span className="field-error">{errors.role}</span>
               )}
             </div>
           </div>

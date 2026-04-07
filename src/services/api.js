@@ -131,6 +131,14 @@ export const inventoryAPI = {
       return_notes: notes,
     }),
   getMyAssignments: () => api.get("/inventory/assignments/my_assignments/"),
+  submitConsent: (id, data) =>
+    api.post(`/inventory/assignments/${id}/submit_consent/`, data),
+  approveConsent: (id) =>
+    api.post(`/inventory/assignments/${id}/approve_consent/`),
+  submitReturnForm: (id, data) =>
+    api.post(`/inventory/assignments/${id}/submit_return_form/`, data),
+  approveReturn: (id) =>
+    api.post(`/inventory/assignments/${id}/approve_return/`),
 
   // Tickets
   getTickets: (params) => api.get("/inventory/tickets/", { params }),
