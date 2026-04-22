@@ -59,6 +59,9 @@ const RequestHistory = () => {
         return "";
     }
   };
+  const hasActiveRequest = requests.some(
+  (req) => req.status === "pending" || req.status === "approved"
+);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -70,22 +73,35 @@ const RequestHistory = () => {
   };
 
   return (
-    <div className="rh-content-section">
-      <div className="rh-section-header">
+    <div className="rh-section-header">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2>Request History</h2>
-        <div className="rh-filter-chips">
-          {Array.from(new Set(requests.map((t) => t.status))).map((stat) => {
-            const label = stat.replace(/_/g, " ");
-            const count = requests.filter((t) => t.status === stat).length;
-            const chipClass = stat === "pending" ? "pending" : stat === "rejected" ? "declined" : "approved";
-            return (
-              <span key={stat} className={`rh-filter-chip ${chipClass}`}>
-                {label.charAt(0).toUpperCase() + label.slice(1)} ({count})
-              </span>
-            );
-          })}
-        </div>
+
+        <button
+          className="rh-request-btn"
+          disabled={hasActiveRequest}
+          onClick={() => {
+            // call your API or open request modal
+            console.log("Request Device clicked");
+          }}
+        >
+          {hasActiveRequest ? "Request Already Raised" : "Request Device"}
+        </button>
       </div>
+
+      <div className="rh-filter-chips">
+        {Array.from(new Set(requests.map((t) => t.status))).map((stat) => {
+          const label = stat.replace(/_/g, " ");
+          const count = requests.filter((t) => t.status === stat).length;
+          const chipClass = stat === "pending" ? "pending" : stat === "rejected" ? "declined" : "approved";
+          return (
+            <span key={stat} className={`rh-filter-chip ${chipClass}`}>
+              {label.charAt(0).toUpperCase() + label.slice(1)} ({count})
+            </span>
+          );
+        })}
+      </div>
+
       <div className="rh-tickets-list">
         {requests.map((request) => (
           <div key={request.id} className="rh-ticket-card">
