@@ -101,6 +101,18 @@ export const authAPI = {
   // Verify reset token
   verifyResetToken: (token) =>
     api.get(`/auth/password/reset/verify/?token=${token}`),
+
+  // Email OTP verification
+  sendOTP: (email) => api.post("/auth/email/send-otp/", { email }),
+  verifyOTP: (email, otp) =>
+    api.post("/auth/email/verify-otp/", { email, otp }),
+  changePasswordAfterOTP: (email, otp, new_password, new_password_confirm) =>
+    api.post("/auth/email/change-password/", {
+      email,
+      otp,
+      new_password,
+      new_password_confirm,
+    }),
 };
 
 // Inventory APIs

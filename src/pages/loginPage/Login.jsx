@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../AuthContext/AuthContext";
 import "./Login.css";
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
+import EmailVerificationPopup from "../../components/common/EmailVerification";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -42,14 +45,27 @@ const Login = () => {
     });
 
     if (result.success) {
-      // ignore previous location and always send user based on role
-      const redirectPath = result.data?.role === 'admin' ? '/admin/dashboard' : '/devices';
-      navigate(redirectPath, { replace: true });
+      // Check if email is verified
+      if (!result.data?.email_verified) {
+        setPendingEmail(formData.email);
+        setShowEmailVerification(true);
+      } else {
+        // Email already verified, redirect
+        const redirectPath = result.data?.role === 'admin' ? '/admin/dashboard' : '/devices';
+        navigate(redirectPath, { replace: true });
+      }
     } else {
       setErrors(result.errors);
     }
 
     setLoading(false);
+  };
+
+  const handleEmailVerified = (employee) => {
+    setShowEmailVerification(false);
+    // Redirect based on role
+    const redirectPath = employee?.role === 'admin' ? '/admin/dashboard' : '/devices';
+    navigate(redirectPath, { replace: true });
   };
 
   return (
@@ -250,6 +266,14 @@ const Login = () => {
           </div>
         </form>
       </div>
+
+      {/* Email Verification Popup */}
+      <EmailVerificationPopup
+        isOpen={showEmailVerification}
+        email={pendingEmail}
+        onClose={() => setShowEmailVerification(false)}
+        onVerified={handleEmailVerified}
+      />
     </div>
   );
 };
