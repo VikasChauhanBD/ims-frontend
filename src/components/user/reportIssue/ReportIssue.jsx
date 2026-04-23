@@ -1,39 +1,36 @@
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
-  ChevronDown,
-  Monitor,
-  Wrench,
-  Code2,
-  ShieldAlert,
-  HelpCircle,
-  Upload,
-  X,
-  ImageIcon,
   CheckCircle2,
-  Clock,
-  Hammer,
-  CircleCheck,
+  ChevronDown,
+  Code2,
   FileText,
+  HelpCircle,
+  MessageCircleWarning,
+  Monitor,
+  ShieldAlert,
+  Wrench,
+  X,
 } from "lucide-react";
 import { inventoryAPI } from "../../../services/api";
+import LoadingSpinner from "../../common/LoadingSpinner";
 import "./ReportIssue.css";
 
 const ISSUE_TYPES = [
-  { id: "software", label: "Software Problem", icon: Code2 },
-  { id: "hardware", label: "Hardware Problem", icon: Wrench },
-  { id: "damage", label: "Physical Damage", icon: ShieldAlert },
+  { id: "software", label: "Software", icon: Code2 },
+  { id: "hardware", label: "Hardware", icon: Wrench },
+  { id: "damage", label: "Damage", icon: ShieldAlert },
   { id: "other", label: "Other", icon: HelpCircle },
 ];
 
 const STATUS_STEPS = [
-  { key: "pending", label: "Pending", icon: FileText },
-  { key: "in_repair", label: "In Repair", icon: Hammer },
-  { key: "resolved", label: "Resolved", icon: CircleCheck },
+  { key: "pending", label: "Pending" },
+  { key: "in_repair", label: "In Repair" },
+  { key: "resolved", label: "Resolved" },
 ];
 
-const formatDate = (d) =>
-  new Date(d).toLocaleDateString("en-US", {
+const formatDate = (value) =>
+  new Date(value).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -41,456 +38,391 @@ const formatDate = (d) =>
 
 const getStepIndex = (status) => {
   const statusMap = {
-    "pending": 0,
-    "in_repair": 1,
-    "resolved": 2,
+    pending: 0,
+    in_repair: 1,
+    resolved: 2,
   };
   return statusMap[status] || 0;
 };
 
-export default function ReportIssue({ onTicketCreated }) {
-  const [view, setView] = useState("form"); // "form" | "history"
+export default function ReportIssue({
+  onTicketCreated,
+  forceOpen = false,
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [view, setView] = useState("report");
   const [devices, setDevices] = useState([]);
   const [reports, setReports] = useState([]);
-
-  // Form state
   const [selectedDevice, setSelectedDevice] = useState("");
-  const [deviceOpen, setDeviceOpen] = useState(false);
   const [issueType, setIssueType] = useState("");
   const [description, setDescription] = useState("");
-  const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const fileRef = useRef();
 
-  // Fetch devices and user's issues on mount
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (forceOpen) {
+      setIsOpen(true);
+      setView("report");
+    }
+  }, [forceOpen]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch devices
-      const devicesRes = await inventoryAPI.getDevices();
-      setDevices(Array.isArray(devicesRes.data) ? devicesRes.data : devicesRes.data.results || []);
+      const [devicesRes, ticketsRes] = await Promise.all([
+        inventoryAPI.getDevices(),
+        inventoryAPI.getMyTickets(),
+      ]);
 
-      // Fetch user's own issues
-      const ticketsRes = await inventoryAPI.getMyTickets();
-      const allTickets = Array.isArray(ticketsRes.data) ? ticketsRes.data : ticketsRes.data.results || [];
-      const userIssues = allTickets.filter(t => t.ticket_type === 'issue');
-      setReports(userIssues);
+      const fetchedDevices = Array.isArray(devicesRes.data)
+        ? devicesRes.data
+        : devicesRes.data.results || [];
+      setDevices(fetchedDevices);
+
+      const allTickets = Array.isArray(ticketsRes.data)
+        ? ticketsRes.data
+        : ticketsRes.data.results || [];
+      setReports(allTickets.filter((ticket) => ticket.ticket_type === "issue"));
     } catch (err) {
-      setError(err.message || "Failed to fetch data");
-      console.error("Error fetching data:", err);
+      setError(err.message || "Failed to fetch issue data");
+      console.error("Error fetching issue widget data:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const selectedDeviceObj = devices.find((d) => d.id === selectedDevice);
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setImage(file);
-    setImagePreview(URL.createObjectURL(file));
-  };
-
-  const removeImage = () => {
-    setImage(null);
-    setImagePreview(null);
-    if (fileRef.current) fileRef.current.value = "";
-  };
+  const selectedDeviceObj = devices.find((device) => device.id === selectedDevice);
+  const openIssueCount = useMemo(
+    () => reports.filter((report) => report.status !== "resolved").length,
+    [reports],
+  );
 
   const validate = () => {
-    const e = {};
-    if (!selectedDevice) e.device = "Please select a device.";
-    if (!issueType) e.issueType = "Please select an issue type.";
-    if (!description.trim()) e.description = "Please describe the issue.";
-    else if (description.trim().length < 10)
-      e.description = "Description must be at least 10 characters.";
-    return e;
+    const nextErrors = {};
+    if (!selectedDevice) nextErrors.device = "Select a device first.";
+    if (!issueType) nextErrors.issueType = "Choose an issue type.";
+    if (!description.trim()) nextErrors.description = "Add a short description.";
+    if (description.trim() && description.trim().length < 10) {
+      nextErrors.description = "Description must be at least 10 characters.";
+    }
+    return nextErrors;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length) {
-      setErrors(errs);
+  const resetForm = () => {
+    setSelectedDevice("");
+    setIssueType("");
+    setDescription("");
+    setErrors({});
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    const nextErrors = validate();
+    if (Object.keys(nextErrors).length) {
+      setErrors(nextErrors);
       return;
     }
-    setErrors({});
+
     setSubmitting(true);
+    setErrors({});
 
     try {
-      // Create ticket with type 'issue'
-      const payload = {
+      await inventoryAPI.createTicket({
         ticket_type: "issue",
         priority: "medium",
         subject: issueType,
-        description: description,
+        description,
         device: selectedDevice,
-      };
+      });
 
-      await inventoryAPI.createTicket(payload);
-
-      setSubmitting(false);
       setSubmitted(true);
+      setView("history");
+      resetForm();
 
-      // Reset form after 2.5 seconds
-      setTimeout(() => {
+      if (onTicketCreated) onTicketCreated();
+      await fetchData();
+
+      window.setTimeout(() => {
         setSubmitted(false);
-        setSelectedDevice("");
-        setIssueType("");
-        setDescription("");
-        removeImage();
-        // Refresh the issues list
-        if (onTicketCreated) {
-          onTicketCreated();
-        }
-        fetchData();
-      }, 2500);
+      }, 2200);
     } catch (err) {
-      setErrors({ submit: err.message || "Failed to submit report" });
+      setErrors({
+        submit: err.response?.data?.message || err.message || "Failed to submit report",
+      });
+    } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="ri-container">
-      {/* Header */}
-      <div className="ri-header">
-        <div className="ri-header-left">
-          <h2 className="ri-title">Report an Issue</h2>
-          <p className="ri-subtitle">
-            Submit a problem with your device
-          </p>
-        </div>
-        <div className="ri-header-tabs">
-          <button
-            className={`ri-tab-btn ${view === "form" ? "ri-tab-active" : ""}`}
-            onClick={() => setView("form")}
-          >
-            <AlertCircle size={15} />
-            New Report
-          </button>
-          <button
-            className={`ri-tab-btn ${view === "history" ? "ri-tab-active" : ""}`}
-            onClick={() => setView("history")}
-          >
-            <FileText size={15} />
-            My Reports
-            {reports.length > 0 && (
-              <span className="ri-badge">{reports.length}</span>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* ── FORM VIEW ── */}
-      {view === "form" && (
-        <div className="ri-form-wrapper">
-          {submitted ? (
-            <div className="ri-success">
-              <div className="ri-success-icon">
-                <CheckCircle2 size={48} />
+    <div className="riw-shell">
+      {isOpen && (
+        <section className="riw-panel" aria-label="Report issue widget">
+          <div className="riw-panel-header">
+            <div className="riw-panel-brand">
+              <div className="riw-panel-icon">
+                <MessageCircleWarning size={18} />
               </div>
-              <h3>Report Submitted!</h3>
-              <p>
-                Your issue has been reported. Our team will review it shortly.
-              </p>
+              <div>
+                <h2 className="riw-panel-title">IT Help Desk</h2>
+                <p className="riw-panel-subtitle">Quick issue reporting widget</p>
+              </div>
             </div>
-          ) : loading ? (
-            <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
-              Loading devices...
-            </div>
-          ) : error ? (
-            <div style={{ textAlign: "center", padding: "40px", color: "#d32f2f" }}>
-              Error: {error}
-            </div>
-          ) : (
-            <form className="ri-form" onSubmit={handleSubmit} noValidate>
-              {errors.submit && (
-                <div style={{ padding: "10px", color: "#d32f2f", marginBottom: "20px" }}>
-                  {errors.submit}
-                </div>
+            <button
+              type="button"
+              className="riw-close"
+              onClick={() => setIsOpen(false)}
+              aria-label="Close issue widget"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="riw-tabs">
+            <button
+              type="button"
+              className={`riw-tab ${view === "report" ? "riw-tab-active" : ""}`}
+              onClick={() => setView("report")}
+            >
+              Report Issue
+            </button>
+            <button
+              type="button"
+              className={`riw-tab ${view === "history" ? "riw-tab-active" : ""}`}
+              onClick={() => setView("history")}
+            >
+              My Reports
+              {reports.length > 0 && (
+                <span className="riw-tab-badge">{reports.length}</span>
               )}
+            </button>
+          </div>
 
-              {/* Select Device */}
-              <div className="ri-field">
-                <label className="ri-label">
-                  <Monitor size={14} />
-                  Select Device <span className="ri-required">*</span>
-                </label>
-                <div
-                  className={`ri-select ${deviceOpen ? "ri-select-open" : ""} ${errors.device ? "ri-input-error" : ""}`}
-                  onClick={() => setDeviceOpen((o) => !o)}
-                >
-                  <span
-                    className={
-                      selectedDeviceObj
-                        ? "ri-select-value"
-                        : "ri-select-placeholder"
-                    }
-                  >
-                    {selectedDeviceObj
-                      ? `${selectedDeviceObj.device_name || selectedDeviceObj.name}`
-                      : "Choose a device..."}
-                  </span>
-                  <ChevronDown
-                    size={16}
-                    className={`ri-chevron ${deviceOpen ? "ri-chevron-up" : ""}`}
-                  />
+          <div className="riw-panel-body">
+            {view === "report" && (
+              <div className="riw-report-view">
+                <div className="riw-chat-bubble riw-chat-bubble-bot">
+                  Tell us what happened and we will open a support ticket for your device.
                 </div>
-                {deviceOpen && (
-                  <div className="ri-dropdown">
-                    {devices.length === 0 ? (
-                      <div style={{ padding: "10px", color: "#999" }}>
-                        No devices available
-                      </div>
-                    ) : (
-                      devices.map((d) => (
-                        <div
-                          key={d.id}
-                          className={`ri-option ${selectedDevice === d.id ? "ri-option-selected" : ""}`}
-                          onClick={() => {
-                            setSelectedDevice(d.id);
-                            setDeviceOpen(false);
-                            setErrors((e) => ({ ...e, device: undefined }));
-                          }}
-                        >
-                          <span className="ri-option-name">
-                            {d.device_name || d.name} ({d.device_type || "device"})
-                          </span>
-                        </div>
-                      ))
+
+                {submitted && (
+                  <div className="riw-success-card">
+                    <CheckCircle2 size={22} />
+                    <div>
+                      <strong>Issue reported.</strong>
+                      <p>Your ticket was created successfully.</p>
+                    </div>
+                  </div>
+                )}
+
+                {loading ? (
+                  <div className="riw-state">Loading your devices...</div>
+                ) : error ? (
+                  <div className="riw-state riw-state-error">Error: {error}</div>
+                ) : (
+                  <form className="riw-form" onSubmit={handleSubmit} noValidate>
+                    {errors.submit && (
+                      <div className="riw-inline-error">{errors.submit}</div>
                     )}
-                  </div>
-                )}
-                {errors.device && <p className="ri-error-msg">{errors.device}</p>}
-              </div>
 
-              {/* Issue Type */}
-              <div className="ri-field">
-                <label className="ri-label">
-                  <AlertCircle size={14} />
-                  Issue Type <span className="ri-required">*</span>
-                </label>
-                <div className="ri-issue-grid">
-                  {ISSUE_TYPES.map((type) => {
-                    const Icon = type.icon;
-                    return (
-                      <button
-                        key={type.id}
-                        type="button"
-                        className={`ri-issue-card ${issueType === type.id ? "ri-issue-selected" : ""}`}
-                        onClick={() => {
-                          setIssueType(type.id);
-                          setErrors((e) => ({ ...e, issueType: undefined }));
-                        }}
-                      >
-                        <Icon size={20} className="ri-issue-icon" />
-                        <span>{type.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {errors.issueType && (
-                  <p className="ri-error-msg">{errors.issueType}</p>
-                )}
-              </div>
-
-              {/* Description */}
-              <div className="ri-field">
-                <label className="ri-label">
-                  <FileText size={14} />
-                  Description <span className="ri-required">*</span>
-                </label>
-                <textarea
-                  className={`ri-textarea ${errors.description ? "ri-input-error" : ""}`}
-                  rows={4}
-                  placeholder="Describe the issue in detail..."
-                  value={description}
-                  onChange={(e) => {
-                    setDescription(e.target.value);
-                    setErrors((err) => ({ ...err, description: undefined }));
-                  }}
-                />
-                <div className="ri-textarea-footer">
-                  {errors.description ? (
-                    <p className="ri-error-msg">{errors.description}</p>
-                  ) : (
-                    <span />
-                  )}
-                  <span className="ri-char-count">
-                    {description.length} chars
-                  </span>
-                </div>
-              </div>
-
-              {/* Upload Image */}
-              <div className="ri-field">
-                <label className="ri-label">
-                  <ImageIcon size={14} />
-                  Upload Image <span className="ri-optional">(Optional)</span>
-                </label>
-                {imagePreview ? (
-                  <div className="ri-image-preview">
-                    <img src={imagePreview} alt="Preview" />
-                    <button
-                      type="button"
-                      className="ri-remove-img"
-                      onClick={removeImage}
-                    >
-                      <X size={14} />
-                    </button>
-                    <span className="ri-img-name">{image?.name}</span>
-                  </div>
-                ) : (
-                  <div
-                    className="ri-upload-zone"
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    <Upload size={24} className="ri-upload-icon" />
-                    <p className="ri-upload-text">
-                      Click to upload or drag & drop
-                    </p>
-                    <p className="ri-upload-hint">PNG, JPG, WEBP up to 5MB</p>
-                  </div>
-                )}
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  className="ri-file-input"
-                  onChange={handleImageChange}
-                />
-              </div>
-
-              {/* Submit */}
-              <button
-                type="submit"
-                className="ri-submit-btn"
-                disabled={submitting}
-              >
-                {submitting ? (
-                  <>
-                    <span className="ri-spinner" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle size={16} />
-                    Submit Report
-                  </>
-                )}
-              </button>
-            </form>
-          )}
-        </div>
-      )}
-
-      {/* ── HISTORY VIEW ── */}
-      {view === "history" && (
-        <div className="ri-history">
-          {loading ? (
-            <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
-              Loading issues...
-            </div>
-          ) : error ? (
-            <div style={{ textAlign: "center", padding: "40px", color: "#d32f2f" }}>
-              Error: {error}
-            </div>
-          ) : reports.length === 0 ? (
-            <div className="ri-empty">
-              <FileText size={48} className="ri-empty-icon" />
-              <p>No issues reported yet.</p>
-            </div>
-          ) : (
-            <div className="ri-reports-list">
-              {reports.map((report) => {
-                const currentStep = getStepIndex(report.status || "pending");
-                const issueTypeLabel = ISSUE_TYPES.find(
-                  (t) => t.id === report.subject?.toLowerCase()
-                )?.label || report.subject || "Issue";
-                const IssueIcon =
-                  ISSUE_TYPES.find(
-                    (t) => t.id === report.subject?.toLowerCase()
-                  )?.icon || AlertCircle;
-                return (
-                  <div key={report.id} className="ri-report-card">
-                    {/* Card Header */}
-                    <div className="ri-report-header">
-                      <div className="ri-report-left">
-                        <div className="ri-report-icon-wrap">
-                          <IssueIcon size={18} />
-                        </div>
-                        <div>
-                          <div className="ri-report-id">{report.ticket_number}</div>
-                          <div className="ri-report-asset">
-                            {report.device?.device_name || report.device?.name || "Device"}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="ri-report-right">
-                        <span className="ri-status-pill">
-                          {report.status || "pending"}
-                        </span>
-                        <span className="ri-report-date">
-                          {formatDate(report.created_at || new Date())}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Issue type + description */}
-                    <div className="ri-report-meta">
-                      <span className="ri-report-type-badge">
-                        {issueTypeLabel}
+                    <label className="riw-field">
+                      <span className="riw-label">
+                        <Monitor size={14} />
+                        Device
                       </span>
-                    </div>
-                    <p className="ri-report-desc">{report.description}</p>
+                      <div className="riw-select-wrap">
+                        <select
+                          value={selectedDevice}
+                          onChange={(event) => {
+                            setSelectedDevice(event.target.value);
+                            setErrors((prev) => ({ ...prev, device: undefined }));
+                          }}
+                          className={`riw-select ${errors.device ? "riw-input-error" : ""}`}
+                        >
+                          <option value="">Choose a device</option>
+                          {devices.map((device) => (
+                            <option key={device.id} value={device.id}>
+                              {device.device_name || device.name} ({device.device_type || "device"})
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} className="riw-select-icon" />
+                      </div>
+                      {errors.device && <p className="riw-error-text">{errors.device}</p>}
+                    </label>
 
-                    {/* Status Stepper */}
-                    <div className="ri-stepper">
-                      {STATUS_STEPS.map((step, idx) => {
-                        const StepIcon = step.icon;
-                        const done = idx < currentStep;
-                        const active = idx === currentStep;
-                        return (
-                          <div key={step.key} className="ri-step">
-                            <div
-                              className={`ri-step-circle ${done ? "ri-step-done" : active ? "ri-step-active" : "ri-step-pending"}`}
+                    <div className="riw-field">
+                      <span className="riw-label">
+                        <AlertCircle size={14} />
+                        Issue Type
+                      </span>
+                      <div className="riw-chip-grid">
+                        {ISSUE_TYPES.map((type) => {
+                          const Icon = type.icon;
+                          return (
+                            <button
+                              key={type.id}
+                              type="button"
+                              className={`riw-chip ${issueType === type.id ? "riw-chip-active" : ""}`}
+                              onClick={() => {
+                                setIssueType(type.id);
+                                setErrors((prev) => ({ ...prev, issueType: undefined }));
+                              }}
                             >
-                              <StepIcon size={13} />
-                            </div>
-                            <span
-                              className={`ri-step-label ${active ? "ri-step-label-active" : done ? "ri-step-label-done" : ""}`}
-                            >
-                              {step.label}
-                            </span>
-                            {idx < STATUS_STEPS.length - 1 && (
-                              <div
-                                className={`ri-step-line ${done ? "ri-line-done" : ""}`}
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
+                              <Icon size={15} />
+                              {type.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {errors.issueType && (
+                        <p className="riw-error-text">{errors.issueType}</p>
+                      )}
                     </div>
+
+                    <label className="riw-field">
+                      <span className="riw-label">
+                        <FileText size={14} />
+                        Description
+                      </span>
+                      <textarea
+                        rows={4}
+                        value={description}
+                        onChange={(event) => {
+                          setDescription(event.target.value);
+                          setErrors((prev) => ({ ...prev, description: undefined }));
+                        }}
+                        className={`riw-textarea ${errors.description ? "riw-input-error" : ""}`}
+                        placeholder="Example: my screen flickers after waking from sleep..."
+                      />
+                      <div className="riw-field-footer">
+                        {errors.description ? (
+                          <p className="riw-error-text">{errors.description}</p>
+                        ) : (
+                          <span className="riw-hint">
+                            {selectedDeviceObj
+                              ? `Reporting for ${selectedDeviceObj.device_name || selectedDeviceObj.name}`
+                              : "Add enough detail for IT to reproduce the problem."}
+                          </span>
+                        )}
+                        <span className="riw-counter">{description.length}</span>
+                      </div>
+                    </label>
+
+                    <button
+                      type="submit"
+                      className="riw-submit"
+                      disabled={submitting}
+                    >
+                      {submitting ? "Sending..." : "Create Issue Ticket"}
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
+
+            {view === "history" && (
+              <div className="riw-history-view">
+                <div className="riw-chat-bubble riw-chat-bubble-bot">
+                  Track your submitted issue tickets here. Open items stay highlighted until they are resolved.
+                </div>
+
+                {loading ? (
+                  <div className="riw-state">Loading your reports...</div>
+                ) : error ? (
+                  <div className="riw-state riw-state-error">Error: {error}</div>
+                ) : reports.length === 0 ? (
+                  <div className="riw-empty">
+                    <FileText size={28} />
+                    <p>No issues reported yet.</p>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                ) : (
+                  <div className="riw-history-list">
+                    {reports.map((report) => {
+                      const currentStep = getStepIndex(report.status || "pending");
+                      const issueTypeLabel = ISSUE_TYPES.find(
+                        (type) => type.id === report.subject?.toLowerCase(),
+                      )?.label || report.subject || "Issue";
+
+                      return (
+                        <article key={report.id} className="riw-history-card">
+                          <div className="riw-history-head">
+                            <div>
+                              <p className="riw-history-ticket">{report.ticket_number}</p>
+                              <h3 className="riw-history-device">
+                                {report.device?.device_name || report.device?.name || "Device"}
+                              </h3>
+                            </div>
+                            <span className={`riw-status riw-status-${report.status || "pending"}`}>
+                              {report.status || "pending"}
+                            </span>
+                          </div>
+
+                          <div className="riw-history-meta">
+                            <span className="riw-type-pill">{issueTypeLabel}</span>
+                            <span>{formatDate(report.created_at || new Date())}</span>
+                          </div>
+
+                          <p className="riw-history-desc">{report.description}</p>
+
+                          <div className="riw-steps">
+                            {STATUS_STEPS.map((step, index) => {
+                              const done = index < currentStep;
+                              const active = index === currentStep;
+                              return (
+                                <div key={step.key} className="riw-step">
+                                  <div
+                                    className={`riw-step-dot ${
+                                      done
+                                        ? "riw-step-done"
+                                        : active
+                                          ? "riw-step-active"
+                                          : ""
+                                    }`}
+                                  />
+                                  <span className="riw-step-label">{step.label}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
       )}
+
+      <button
+        type="button"
+        className={`riw-trigger ${isOpen ? "riw-trigger-hidden" : ""}`}
+        onClick={() => setIsOpen(true)}
+        aria-label="Open report issue widget"
+      >
+        <div className="riw-trigger-icon">
+          <MessageCircleWarning size={22} />
+        </div>
+        <div className="riw-trigger-copy">
+          <strong>Report Issue</strong>
+          <span>Chat with IT support</span>
+        </div>
+        {openIssueCount > 0 && (
+          <span className="riw-trigger-badge">{openIssueCount}</span>
+        )}
+      </button>
     </div>
   );
 }

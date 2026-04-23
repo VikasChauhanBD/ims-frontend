@@ -40,17 +40,63 @@ export default function DeviceRequestsView({
     return employee?.full_name || "Unknown User";
   };
 
-  const handleApproveConsent = async (requestId) => {
+  const handleGrantDevice = async (requestId) => {
     setProcessingRequestId(requestId);
-    setProcessingAction("approve_consent");
+    setProcessingAction("grant_device");
 
     try {
-      await inventoryAPI.approveConsent(requestId);
+      const response = await inventoryAPI.grantDeviceRequest(requestId);
+      const updatedRequest = response.data?.request;
 
       setRequests((prev) =>
         prev.map((req) =>
           req.id === requestId
-            ? { ...req, consent_form_approved: true }
+            ? { ...req, ...(updatedRequest || { status: "approved" }) }
+            : req,
+        ),
+      );
+
+      if (onRefresh) onRefresh();
+
+      setPopup({
+        open: true,
+        title: "Device Granted",
+        message: "The device request has been granted and notification emails were sent.",
+        type: "success",
+      });
+    } catch (err) {
+      console.error("Failed to grant device", err);
+      const serverMessage =
+        err.response?.data?.message || err.response?.data?.detail ||
+        err.message ||
+        "Unable to grant device";
+      setPopup({
+        open: true,
+        title: "Grant Failed",
+        message: serverMessage,
+        type: "error",
+      });
+    } finally {
+      setProcessingRequestId(null);
+      setProcessingAction(null);
+    }
+  };
+
+  const handleApproveConsent = async (assignmentId, requestId) => {
+    setProcessingRequestId(requestId);
+    setProcessingAction("approve_consent");
+
+    try {
+      const response = await inventoryAPI.approveConsent(assignmentId);
+      const updatedAssignment = response.data?.assignment;
+
+      setRequests((prev) =>
+        prev.map((req) =>
+          req.id === requestId
+            ? {
+                ...req,
+                assignment_details: updatedAssignment || req.assignment_details,
+              }
             : req,
         ),
       );
@@ -81,17 +127,22 @@ export default function DeviceRequestsView({
     }
   };
 
-  const handleApproveReturn = async (requestId) => {
+  const handleApproveReturn = async (assignmentId, requestId) => {
     setProcessingRequestId(requestId);
     setProcessingAction("approve_return");
 
     try {
-      await inventoryAPI.approveReturn(requestId);
+      const response = await inventoryAPI.approveReturn(assignmentId);
+      const updatedAssignment = response.data?.assignment;
 
       setRequests((prev) =>
         prev.map((req) =>
           req.id === requestId
-            ? { ...req, return_form_approved: true, status: "returned" }
+            ? {
+                ...req,
+                assignment_details: updatedAssignment || req.assignment_details,
+                status: "returned",
+              }
             : req,
         ),
       );
@@ -286,12 +337,12 @@ export default function DeviceRequestsView({
                           </div>
                         )}
 
-                        {request.assignment_details.consent_form_data.uploaded_images &&
-                          request.assignment_details.consent_form_data.uploaded_images.length > 0 && (
+                        {request.assignment_details.consent_images &&
+                          request.assignment_details.consent_images.length > 0 && (
                             <div className="device-request-consent-images">
                               <span className="device-request-label">Uploaded Photos</span>
                               <div className="device-request-images-grid">
-                                {request.assignment_details.consent_form_data.uploaded_images.map(
+                                {request.assignment_details.consent_images.map(
                                   (imageUrl, idx) => (
                                     <a
                                       key={idx}
@@ -351,13 +402,13 @@ export default function DeviceRequestsView({
                     {request.status === "pending" && (
                       <>
                         <button
-                          className="btn-approve-consent"
-                          onClick={() => handleApproveConsent(request.id)}
+                          className="btn-device-grant"
+                          onClick={() => handleGrantDevice(request.id)}
                           disabled={isProcessing}
                         >
-                          {isProcessing && processingAction === "approve_consent"
-                            ? "Approving..."
-                            : "Approve Consent"}
+                          {isProcessing && processingAction === "grant_device"
+                            ? "Granting..."
+                            : "Device Grant"}
                         </button>
                         <button
                           className="btn-reject"
@@ -373,10 +424,35 @@ export default function DeviceRequestsView({
 
                     {request.status === "approved" &&
                       request.assignment_details &&
+                      request.assignment_details.consent_form_data &&
+                      !request.assignment_details.consent_approved && (
+                        <button
+                          className="btn-approve-consent"
+                          onClick={() =>
+                            handleApproveConsent(
+                              request.assignment_details.id,
+                              request.id,
+                            )
+                          }
+                          disabled={isProcessing}
+                        >
+                          {isProcessing && processingAction === "approve_consent"
+                            ? "Approving Consent..."
+                            : "Approve Consent"}
+                        </button>
+                      )}
+
+                    {request.status === "approved" &&
+                      request.assignment_details &&
                       request.assignment_details.return_form_pending && (
                         <button
                           className="btn-approve-return"
-                          onClick={() => handleApproveReturn(request.id)}
+                          onClick={() =>
+                            handleApproveReturn(
+                              request.assignment_details.id,
+                              request.id,
+                            )
+                          }
                           disabled={isProcessing}
                         >
                           {isProcessing && processingAction === "approve_return"

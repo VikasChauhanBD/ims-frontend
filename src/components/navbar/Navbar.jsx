@@ -8,8 +8,9 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
+    const redirectPath = user?.role === "admin" ? "/admin-login" : "/login";
     await logout();
-    navigate("/login");
+    navigate(redirectPath);
   };
 
   const profilePath = user?.role === "admin" ? "/admin/profile" : "/profile";

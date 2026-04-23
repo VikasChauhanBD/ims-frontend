@@ -39,6 +39,7 @@ function Admin() {
     title: "",
     message: "",
     type: "info",
+    actions: [],
   });
 
   // Fetch data from backend - optimized polling with longer intervals
@@ -48,14 +49,19 @@ function Admin() {
     const mainInterval = setInterval(fetchData, 30000);
     // Faster polling for critical updates like new tickets (15 seconds)
     const ticketInterval = setInterval(checkForNewTickets, 15000);
+    // Poll pending device requests more frequently so admins notice new items quickly
+    const requestInterval = setInterval(checkForNewDeviceRequests, 10000);
     
     return () => {
       clearInterval(mainInterval);
       clearInterval(ticketInterval);
+      clearInterval(requestInterval);
     };
   }, []);
 
   const previousTicketsLengthRef = useRef(0);
+  const previousPendingDeviceRequestIdsRef = useRef(new Set());
+  const initializedPendingDeviceRequestsRef = useRef(false);
 
   // Optimized: Check only for new tickets (lightweight polling)
   const checkForNewTickets = async () => {
@@ -79,6 +85,57 @@ function Admin() {
       previousTicketsLengthRef.current = fetchedTickets.length;
     } catch (err) {
       console.error("Error checking for new tickets:", err);
+    }
+  };
+
+  const checkForNewDeviceRequests = async () => {
+    try {
+      const requestsResponse = await inventoryAPI.getDeviceRequests({ status: "pending" });
+      const pendingRequests = Array.isArray(requestsResponse.data)
+        ? requestsResponse.data
+        : requestsResponse.data.results || [];
+
+      const nextPendingIds = new Set(pendingRequests.map((request) => request.id));
+
+      if (initializedPendingDeviceRequestsRef.current) {
+        const previousPendingIds = previousPendingDeviceRequestIdsRef.current;
+        const newPendingRequests = pendingRequests.filter(
+          (request) => !previousPendingIds.has(request.id),
+        );
+
+        if (newPendingRequests.length) {
+          setPopup({
+            open: true,
+            title: "New Device Request",
+            message:
+              newPendingRequests.length === 1
+                ? "A new device request is waiting for review."
+                : `${newPendingRequests.length} new device requests are waiting for review.`,
+            type: "info",
+            actions: [
+              {
+                label: "Open Device Requests",
+                onClick: () => {
+                  navigate("/admin/devicerequests");
+                  setPopup((prev) => ({ ...prev, open: false }));
+                },
+              },
+            ],
+          });
+        }
+      }
+
+      setDeviceRequests((previousRequests) => {
+        const previousById = new Map(previousRequests.map((request) => [request.id, request]));
+        const mergedRequests = pendingRequests.map((request) => previousById.get(request.id) || request);
+        const resolvedRequests = previousRequests.filter((request) => !nextPendingIds.has(request.id));
+        return [...mergedRequests, ...resolvedRequests];
+      });
+
+      previousPendingDeviceRequestIdsRef.current = nextPendingIds;
+      initializedPendingDeviceRequestsRef.current = true;
+    } catch (err) {
+      console.error("Error checking for new device requests:", err);
     }
   };
 
@@ -122,6 +179,12 @@ function Admin() {
         ? deviceRequestsResponse.data
         : deviceRequestsResponse.data.results || [];
       setDeviceRequests(fetchedDeviceRequests);
+      previousPendingDeviceRequestIdsRef.current = new Set(
+        fetchedDeviceRequests
+          .filter((request) => request.status === "pending")
+          .map((request) => request.id),
+      );
+      initializedPendingDeviceRequestsRef.current = true;
 
       setLoading(false);
       setError(null);
@@ -196,6 +259,16 @@ function Admin() {
       : undefined;
   };
 
+  const pendingTicketCount = useMemo(
+    () => tickets.filter((ticket) => ticket.status === "pending").length,
+    [tickets],
+  );
+
+  const pendingDeviceRequestCount = useMemo(
+    () => deviceRequests.filter((request) => request.status === "pending").length,
+    [deviceRequests],
+  );
+
   if (loading) {
     return (
       <div className="admin-main-container">
@@ -223,8 +296,8 @@ function Admin() {
     { id: "devices", label: "Devices", icon: Package },
     { id: "employees", label: "Employees", icon: Users },
     { id: "assignments", label: "Assignments", icon: FileText },
-    { id: "ticketrequests", label: "Ticket Requests", icon: Ticket },
-    { id: "devicerequests", label: "Device Requests", icon: Ticket },
+    { id: "ticketrequests", label: "Ticket Requests", icon: Ticket, badge: pendingTicketCount },
+    { id: "devicerequests", label: "Device Requests", icon: Ticket, badge: pendingDeviceRequestCount },
   ];
 
   return (
@@ -247,6 +320,9 @@ function Admin() {
               >
                 <Icon className="admin-tab-icon" />
                 {tab.label}
+                {tab.badge > 0 && (
+                  <span className="admin-tab-badge">{tab.badge}</span>
+                )}
               </button>
             );
           })}
@@ -309,6 +385,7 @@ function Admin() {
         title={popup.title}
         message={popup.message}
         type={popup.type}
+        actions={popup.actions || []}
         onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
       />
 

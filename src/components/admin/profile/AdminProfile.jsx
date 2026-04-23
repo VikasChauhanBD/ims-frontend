@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../../AuthContext/AuthContext";
 import { authAPI } from "../../../services/api";
+import LoadingSpinner from "../../common/LoadingSpinner";
 import "./AdminProfile.css";
 import AnimatedBackground from "../../animatedBackground/AnimatedBackground";
 
@@ -41,9 +42,7 @@ const AdminProfile = () => {
     return (
       <div className="admin-profile-container">
         <AnimatedBackground />
-        <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
-          Loading profile...
-        </div>
+        <LoadingSpinner fullScreen={false} message="Loading profile..." />
       </div>
     );
   }
@@ -109,6 +108,10 @@ const AdminProfile = () => {
               <div className="admin-info-item">
                 <span className="admin-info-label">Email</span>
                 <span className="admin-info-value">{employee.email}</span>
+              </div>
+              <div className="admin-info-item">
+                <span className="admin-info-label">Username</span>
+                <span className="admin-info-value">{employee.username || "N/A"}</span>
               </div>
               <div className="admin-info-item">
                 <span className="admin-info-label">Phone</span>

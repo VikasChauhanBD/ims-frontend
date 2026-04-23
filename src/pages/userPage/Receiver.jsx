@@ -6,7 +6,6 @@ import {
   Monitor,
   ClipboardList,
   AlarmClock,
-  AlertCircle,
   Wrench,
 } from "lucide-react";
 import Navbar from "../../components/navbar/Navbar";
@@ -28,11 +27,15 @@ function Receiver() {
   const location = useLocation();
 
   // Derive activeTab from the flat URL path e.g. /devices → "devices"
-  const activeTab = location.pathname.replace("/", "") || "devices";
+  const rawActiveTab = location.pathname.replace("/", "") || "devices";
+  const activeTab = rawActiveTab === "reportissue" ? "devices" : rawActiveTab;
 
   const [devices, setDevices] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [tickets, setTickets] = useState([]);
+  const [deviceRequests, setDeviceRequests] = useState([]);
+  const [deviceRequestsLoading, setDeviceRequestsLoading] = useState(true);
+  const [deviceRequestsError, setDeviceRequestsError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -46,18 +49,26 @@ function Receiver() {
   // Fetch data from backend - optimized polling with longer intervals
   useEffect(() => {
     fetchData();
+    fetchDeviceRequests();
     // Use longer intervals for better performance: 30 seconds for general data
     const mainInterval = setInterval(fetchData, 30000);
     // Faster polling for critical updates like new tickets (15 seconds)
     const ticketInterval = setInterval(checkForNewTickets, 15000);
+    // Poll request approvals more frequently so users see status changes quickly
+    const approvalInterval = setInterval(() => {
+      fetchDeviceRequests({ silent: true, notifyOnChange: true });
+    }, 10000);
     
     return () => {
       clearInterval(mainInterval);
       clearInterval(ticketInterval);
+      clearInterval(approvalInterval);
     };
   }, []);
 
   const previousTicketsLengthRef = useRef(0);
+  const previousRequestStatusesRef = useRef(new Map());
+  const initializedRequestStatusesRef = useRef(false);
 
   // Optimized: Check only for new tickets (lightweight polling)
   const checkForNewTickets = async () => {
@@ -82,6 +93,80 @@ function Receiver() {
       previousTicketsLengthRef.current = fetchedTickets.length;
     } catch (err) {
       console.error("Error checking for new tickets:", err);
+    }
+  };
+
+  const fetchDeviceRequests = async ({
+    silent = false,
+    notifyOnChange = false,
+  } = {}) => {
+    try {
+      if (!silent) {
+        setDeviceRequestsLoading(true);
+        setDeviceRequestsError(null);
+      }
+
+      const requestsResponse = await inventoryAPI.getMyDeviceRequests();
+      const fetchedRequests = Array.isArray(requestsResponse.data)
+        ? requestsResponse.data
+        : requestsResponse.data.results || [];
+
+      if (notifyOnChange && initializedRequestStatusesRef.current) {
+        const previousStatuses = previousRequestStatusesRef.current;
+        const changedRequests = fetchedRequests.filter((request) => {
+          const previousStatus = previousStatuses.get(request.id);
+          return (
+            previousStatus &&
+            previousStatus !== request.status &&
+            ["approved", "rejected"].includes(request.status)
+          );
+        });
+
+        if (changedRequests.length) {
+          const latestChange = changedRequests[0];
+          const isApproved = latestChange.status === "approved";
+          const deviceLabel = [latestChange.brand, latestChange.model]
+            .filter(Boolean)
+            .join(" ")
+            .trim() || latestChange.device_type || "device request";
+
+          setPopup({
+            open: true,
+            title: isApproved ? "Request Approved" : "Request Rejected",
+            message:
+              changedRequests.length === 1
+                ? `Your ${deviceLabel} request was ${latestChange.status}.`
+                : `${changedRequests.length} request updates were received. Open Request History to review them.`,
+            type: isApproved ? "success" : "error",
+            actions: [
+              {
+                label: "View Request History",
+                onClick: () => {
+                  navigate("/requesthistory");
+                  setPopup((prev) => ({ ...prev, open: false }));
+                },
+              },
+            ],
+          });
+        }
+      }
+
+      setDeviceRequests(fetchedRequests);
+      previousRequestStatusesRef.current = new Map(
+        fetchedRequests.map((request) => [request.id, request.status]),
+      );
+      initializedRequestStatusesRef.current = true;
+    } catch (err) {
+      console.error("Error fetching device request updates:", err);
+      if (!silent) {
+        setDeviceRequestsError(
+          err.message || "Failed to load device request updates",
+        );
+      }
+    } finally {
+      if (!silent) {
+        setDeviceRequestsLoading(false);
+      }
     }
   };
 
@@ -202,7 +287,6 @@ function Receiver() {
     { id: "mydevices", label: "My Devices", icon: Monitor },
     { id: "requesthistory", label: "Request History", icon: ClipboardList },
     { id: "overdue", label: "Return Due", icon: AlarmClock },
-    { id: "reportissue", label: "Report Issue", icon: AlertCircle },
     { id: "raiserepairticket", label: "Repair Ticket", icon: Wrench },
   ];
 
@@ -249,20 +333,30 @@ function Receiver() {
 
         {activeTab === "mydevices" && <MyDevices />}
 
-        {activeTab === "requesthistory" && <RequestHistory />}
+        {activeTab === "requesthistory" && (
+          <RequestHistory
+            requests={deviceRequests}
+            loading={deviceRequestsLoading}
+            error={deviceRequestsError}
+          />
+        )}
 
         {activeTab === "overdue" && <OverDueItems />}
 
-        {activeTab === "reportissue" && <ReportIssue onTicketCreated={fetchData} />}
-
         {activeTab === "raiserepairticket" && <RaiseRepairTicket onTicketCreated={fetchData} />}
       </div>
+
+      <ReportIssue
+        onTicketCreated={fetchData}
+        forceOpen={rawActiveTab === "reportissue"}
+      />
 
       <PopupModal
         open={popup.open}
         title={popup.title}
         message={popup.message}
         type={popup.type}
+        actions={popup.actions || []}
         onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
       />
 

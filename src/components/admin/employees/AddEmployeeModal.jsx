@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { X } from "lucide-react";
 import { employeeAPI } from "../../../services/api";
 import { handleAPIError } from "../../../services/api";
+import LoadingSpinner from "../../common/LoadingSpinner";
 import "./AddEmployeeModal.css";
 
 export default function AddEmployeeModal({ isOpen, onClose, onEmployeeAdded }) {
@@ -111,12 +112,17 @@ export default function AddEmployeeModal({ isOpen, onClose, onEmployeeAdded }) {
       <div className="modal-content">
         <div className="modal-header">
           <h2>Add New Employee</h2>
-          <button onClick={onClose} className="modal-close-btn">
+          <button onClick={onClose} className="modal-close-btn" disabled={loading}>
             <X size={24} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-form">
+        {loading ? (
+          <div className="modal-loading">
+            <LoadingSpinner message="Creating employee..." />
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="modal-form">
           {successMessage && (
             <div className="success-message">{successMessage}</div>
           )}
@@ -274,6 +280,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onEmployeeAdded }) {
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );

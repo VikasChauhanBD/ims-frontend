@@ -1,30 +1,11 @@
-import React, { useState, useEffect } from "react";
-import { inventoryAPI } from "../../../services/api";
+import React from "react";
 import "./RequestHistory.css";
 
-const RequestHistory = () => {
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    fetchRequests();
-  }, []);
-
-  const fetchRequests = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await inventoryAPI.getMyDeviceRequests();
-      const all = Array.isArray(res.data) ? res.data : res.data.results || [];
-      setRequests(all);
-    } catch (err) {
-      console.error("RequestHistory error:", err);
-      setError(err.message || "Failed to load device requests");
-    } finally {
-      setLoading(false);
-    }
-  };
+const RequestHistory = ({
+  requests = [],
+  loading = false,
+  error = null,
+}) => {
   const getStatusClass = (status) => {
     // map backend statuses to css classes
     switch (status) {
@@ -72,6 +53,24 @@ const RequestHistory = () => {
     });
   };
 
+  if (loading) {
+    return (
+      <div className="rh-section-header">
+        <h2>Request History</h2>
+        <p>Loading device requests...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rh-section-header">
+        <h2>Request History</h2>
+        <p style={{ color: "#d32f2f" }}>Error: {error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="rh-section-header">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -88,6 +87,23 @@ const RequestHistory = () => {
           {hasActiveRequest ? "Request Already Raised" : "Request Device"}
         </button>
       </div>
+
+      {!requests.length && (
+        <div className="rh-tickets-list">
+          <div className="rh-ticket-card">
+            <div className="rh-ticket-main">
+              <div className="rh-ticket-left">
+                <div className="rh-ticket-info">
+                  <h3 className="rh-ticket-id">No requests yet</h3>
+                  <p className="rh-ticket-type">
+                    Your device request updates will appear here automatically.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="rh-filter-chips">
         {Array.from(new Set(requests.map((t) => t.status))).map((stat) => {

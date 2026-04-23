@@ -366,6 +366,22 @@
   cursor: not-allowed;
 }
 
+.btn-device-grant {
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+.btn-device-grant:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255, 152, 0, 0.4);
+}
+
+.btn-device-grant:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn-approve-return {
   background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
   color: white;

@@ -1,0 +1,160 @@
+/* Loading GIF Container */
+.loading-gif-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 2rem;
+}
+
+/* Loading GIF Image */
+.loading-gif {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.1));
+  animation: fadeIn 0.3s ease-in;
+}
+
+/* Different Sizes */
+.loading-gif-small {
+  width: 50px;
+  height: 50px;
+}
+
+.loading-gif-medium {
+  width: 100px;
+  height: 100px;
+}
+
+.loading-gif-large {
+  width: 150px;
+  height: 150px;
+}
+
+.loading-gif-xl {
+  width: 200px;
+  height: 200px;
+}
+
+/* Loading Message */
+.loading-gif-message {
+  font-size: 1rem;
+  color: #666;
+  font-weight: 500;
+  text-align: center;
+  margin: 0;
+}
+
+/* Fade In Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Desktop Optimization */
+@media (min-width: 1024px) {
+  .loading-gif-container {
+    gap: 2rem;
+    padding: 3rem 2rem;
+  }
+
+  .loading-gif-medium {
+    width: 120px;
+    height: 120px;
+  }
+
+  .loading-gif-message {
+    font-size: 1.1rem;
+  }
+}
+
+/* Tablet Optimization */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .loading-gif-container {
+    gap: 1.75rem;
+    padding: 2.5rem 1.5rem;
+  }
+
+  .loading-gif-medium {
+    width: 110px;
+    height: 110px;
+  }
+
+  .loading-gif-message {
+    font-size: 1rem;
+  }
+}
+
+/* Mobile Optimization */
+@media (max-width: 767px) {
+  .loading-gif-container {
+    gap: 1.25rem;
+    padding: 1.5rem 1rem;
+  }
+
+  .loading-gif-small {
+    width: 40px;
+    height: 40px;
+  }
+
+  .loading-gif-medium {
+    width: 80px;
+    height: 80px;
+  }
+
+  .loading-gif-large {
+    width: 120px;
+    height: 120px;
+  }
+
+  .loading-gif-message {
+    font-size: 0.95rem;
+  }
+}
+
+/* Extra Small Mobile */
+@media (max-width: 480px) {
+  .loading-gif-container {
+    gap: 1rem;
+    padding: 1rem 0.75rem;
+  }
+
+  .loading-gif-small {
+    width: 35px;
+    height: 35px;
+  }
+
+  .loading-gif-medium {
+    width: 70px;
+    height: 70px;
+  }
+
+  .loading-gif-large {
+    width: 100px;
+    height: 100px;
+  }
+
+  .loading-gif-message {
+    font-size: 0.85rem;
+  }
+}
+
+/* Inline Loading Variant */
+.loading-gif-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.loading-gif-inline .loading-gif {
+  width: 30px;
+  height: 30px;
+}
+
+.loading-gif-inline .loading-gif-message {
+  margin: 0;
+  font-size: 0.95rem;
+}

@@ -14,6 +14,7 @@ import {
   Send,
 } from "lucide-react";
 import { inventoryAPI } from "../../../services/api";
+import LoadingSpinner from "../../common/LoadingSpinner";
 import "./RaiseRepairTicket.css";
 
 const STATUS_LABELS = {

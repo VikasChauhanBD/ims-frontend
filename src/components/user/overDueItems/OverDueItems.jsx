@@ -8,6 +8,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { inventoryAPI } from "../../../services/api";
+import LoadingSpinner from "../../common/LoadingSpinner";
 import "./OverDueItems.css";
 
 // data will be fetched from backend

@@ -3,6 +3,7 @@ import { inventoryAPI } from "../../../services/api";
 import { useAuth } from "../../../AuthContext/AuthContext";
 import { mockDevices, mockAssignments } from "../../../assets/data/mockData";
 import { Clock, AlertCircle } from "lucide-react";
+import LoadingSpinner from "../../common/LoadingSpinner";
 import "./MyDevices.css";
 
 const MyDevices = () => {
@@ -91,8 +92,8 @@ const MyDevices = () => {
 
   if (loading) {
     return (
-      <div className="md-content-section" style={{ textAlign: "center", padding: "40px", color: "#666" }}>
-        Loading devices...
+      <div className="md-content-section">
+        <LoadingSpinner fullScreen={false} message="Loading your devices..." />
       </div>
     );
   }

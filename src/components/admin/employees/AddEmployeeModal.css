@@ -226,3 +226,26 @@
     font-size: 1.25rem;
   }
 }
+
+/* Modal Loading State */
+.modal-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  min-height: 300px;
+}
+
+@media (max-width: 768px) {
+  .modal-loading {
+    padding: 3rem 1.5rem;
+    min-height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-loading {
+    padding: 2rem 1rem;
+    min-height: 200px;
+  }
+}

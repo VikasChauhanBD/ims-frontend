@@ -1,5 +1,5 @@
 import React from "react";
-import { Mail, Briefcase, Building2, UserCheck, UserX } from "lucide-react";
+import { Mail, Briefcase, Building2, UserCheck, UserX, AtSign } from "lucide-react";
 import "./EmployeeCard.css";
 
 export default function EmployeeCard({
@@ -38,6 +38,10 @@ export default function EmployeeCard({
         <div className="employee-detail">
           <Mail className="employee-detail-icon" />
           <span>{employee.email}</span>
+        </div>
+        <div className="employee-detail">
+          <AtSign className="employee-detail-icon" />
+          <span>{employee.username || "N/A"}</span>
         </div>
         <div className="employee-detail">
           <Building2 className="employee-detail-icon" />

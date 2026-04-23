@@ -3,6 +3,7 @@ import { useAuth } from "../../../AuthContext/AuthContext";
 import { authAPI } from "../../../services/api";
 import { uploadImage, validateImageFile } from "../../../services/imageUpload";
 import { Upload, X } from "lucide-react";
+import LoadingSpinner from "../../common/LoadingSpinner";
 import "./EmployeeProfile.css";
 import AnimatedBackground from "../../animatedBackground/AnimatedBackground";
 import ActivityLog from "../activityLog/ActivityLog";
@@ -85,9 +86,7 @@ const EmployeeProfile = () => {
     return (
       <div className="user-profile-container">
         <AnimatedBackground />
-        <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
-          Loading profile...
-        </div>
+        <LoadingSpinner fullScreen={false} message="Loading profile..." />
       </div>
     );
   }
@@ -183,6 +182,10 @@ const EmployeeProfile = () => {
               <div className="user-info-item">
                 <span className="user-info-label">Email</span>
                 <span className="user-info-value">{employee.email}</span>
+              </div>
+              <div className="user-info-item">
+                <span className="user-info-label">Username</span>
+                <span className="user-info-value">{employee.username || "N/A"}</span>
               </div>
               <div className="user-info-item">
                 <span className="user-info-label">Phone</span>

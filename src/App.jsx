@@ -8,14 +8,17 @@ import Admin from "./pages/adminPage/Admin";
 import Receiver from "./pages/userPage/Receiver";
 import EmployeeProfile from "./components/user/profile/EmployeeProfile";
 import AdminProfile from "./components/admin/profile/AdminProfile";
+import AssignmentUndertaking from "./components/user/assignmentUndertaking/AssignmentUndertaking";
+import LoadingSpinner from "./components/common/LoadingSpinner";
 import "./App.css";
-import ConsentForm from "./components/common/ConsentForm";
 
 // Protected Route
 function ProtectedRoute({ children, adminOnly = false }) {
   const { isAuthenticated, loading, user } = useAuth();
-  if (loading) return <div>Loading...</div>;
-  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (loading) return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
+  if (!isAuthenticated) {
+    return <Navigate to={adminOnly ? "/admin-login" : "/login"} />;
+  }
   // if route requires admin and user is not admin, send to user dashboard
   if (adminOnly && user?.role !== "admin") return <Navigate to="/devices" />;
   // if route is open but user is admin, redirect them to admin panel
@@ -28,7 +31,7 @@ function ProtectedRoute({ children, adminOnly = false }) {
 // User-only Route (authenticated, non-admin users only)
 function UserOnlyRoute({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (user?.role === "admin") return <Navigate to="/admin/profile" />;
   return children;
@@ -37,8 +40,8 @@ function UserOnlyRoute({ children }) {
 // Admin-only Route (authenticated, admin users only)
 function AdminOnlyRoute({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
-  if (loading) return <div>Loading...</div>;
-  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (loading) return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
+  if (!isAuthenticated) return <Navigate to="/admin-login" />;
   if (user?.role !== "admin") return <Navigate to="/profile" />;
   return children;
 }
@@ -46,7 +49,7 @@ function AdminOnlyRoute({ children }) {
 // Public Route (redirect if logged in)
 function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
   return !isAuthenticated ? children : <Navigate to="/devices" />;
 }
 
@@ -60,6 +63,14 @@ function App() {
             element={
               <PublicRoute>
                 <Login />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/admin-login"
+            element={
+              <PublicRoute>
+                <Login adminMode />
               </PublicRoute>
             }
           />
@@ -79,6 +90,15 @@ function App() {
             element={
               <UserOnlyRoute>
                 <EmployeeProfile />
+              </UserOnlyRoute>
+            }
+          />
+
+          <Route
+            path="/consent"
+            element={
+              <UserOnlyRoute>
+                <AssignmentUndertaking />
               </UserOnlyRoute>
             }
           />
@@ -127,7 +147,6 @@ function App() {
             <Route path="devicerequests" element={null} />
           
           </Route>
-          <Route path="consent" element={ConsentForm} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

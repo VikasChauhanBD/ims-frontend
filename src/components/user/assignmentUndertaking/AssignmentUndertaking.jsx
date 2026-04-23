@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import ConsentForm from "../../common/ConsentForm";
+import LoadingSpinner from "../../common/LoadingSpinner";
 import { inventoryAPI } from "../../../services/api";
 import "./AssignmentUndertaking.css";
 
@@ -72,9 +73,7 @@ export default function AssignmentUndertaking() {
   if (loading) {
     return (
       <div className="undertaking-container">
-        <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
-          Loading pending assignments...
-        </div>
+        <LoadingSpinner fullScreen={false} message="Loading pending assignments..." />
       </div>
     );
   }

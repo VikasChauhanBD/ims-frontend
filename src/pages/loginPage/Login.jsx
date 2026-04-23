@@ -1,17 +1,16 @@
 import React, { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../AuthContext/AuthContext";
 import "./Login.css";
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
 import EmailVerificationPopup from "../../components/common/EmailVerification";
 
-const Login = () => {
+const Login = ({ adminMode = false }) => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { login } = useAuth();
 
   const [formData, setFormData] = useState({
-    email: "",
+    login: "",
     password: "",
   });
   const [errors, setErrors] = useState({});
@@ -40,14 +39,15 @@ const Login = () => {
     setLoading(true);
 
     const result = await login({
-      email: formData.email,
+      login: formData.login,
       password: formData.password,
+      admin_only: adminMode,
     });
 
     if (result.success) {
       // Check if email is verified
       if (!result.data?.email_verified) {
-        setPendingEmail(formData.email);
+        setPendingEmail(result.data?.email || "");
         setShowEmailVerification(true);
       } else {
         // Email already verified, redirect
@@ -67,6 +67,14 @@ const Login = () => {
     const redirectPath = employee?.role === 'admin' ? '/admin/dashboard' : '/devices';
     navigate(redirectPath, { replace: true });
   };
+
+  const title = adminMode ? "Admin Access" : "Welcome Back";
+  const subtitle = adminMode
+    ? "Sign in with your admin account to manage inventory operations"
+    : "Sign in to your Inventory Management account";
+  const submitLabel = adminMode ? "Admin Sign In" : "Sign In";
+  const switchLinkPath = adminMode ? "/login" : "/admin-login";
+  const switchLinkLabel = adminMode ? "Employee sign in" : "Admin sign in";
 
   return (
     <div className="login-container">
@@ -89,10 +97,13 @@ const Login = () => {
               />
             </svg>
           </div>
-          <h2 className="login-title">Welcome Back</h2>
-          <p className="login-subtitle">
-            Sign in to your Inventory Management account
-          </p>
+          <h2 className="login-title">{title}</h2>
+          <p className="login-subtitle">{subtitle}</p>
+          <div className="login-mode-switch">
+            <Link to={switchLinkPath} className="mode-switch-link">
+              {switchLinkLabel}
+            </Link>
+          </div>
         </div>
 
         {/* Form */}
@@ -104,10 +115,10 @@ const Login = () => {
           )}
 
           <div className="form-fields">
-            {/* Email */}
+            {/* Login identifier */}
             <div className="input-group">
-              <label htmlFor="email" className="input-label">
-                Email Address
+              <label htmlFor="login" className="input-label">
+                Email or Username
               </label>
               <div className="input-wrapper">
                 <div className="input-icon">
@@ -126,18 +137,20 @@ const Login = () => {
                   </svg>
                 </div>
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
+                  id="login"
+                  name="login"
+                  type="text"
+                  autoComplete="username"
                   required
-                  value={formData.email}
+                  value={formData.login}
                   onChange={handleChange}
-                  className={`input-field ${errors.email ? "input-error" : ""}`}
-                  placeholder="Enter your email"
+                  className={`input-field ${(errors.login || errors.email) ? "input-error" : ""}`}
+                  placeholder="Enter your email or username"
                 />
               </div>
-              {errors.email && <p className="field-error">{errors.email}</p>}
+              {(errors.login || errors.email) && (
+                <p className="field-error">{errors.login || errors.email}</p>
+              )}
             </div>
 
             {/* Password */}
@@ -251,19 +264,20 @@ const Login = () => {
                 ></path>
               </svg>
             ) : (
-              "Sign In"
+              submitLabel
             )}
           </button>
 
-          {/* Sign up link */}
-          <div className="signup-prompt">
-            <p className="signup-text">
-              Don't have an account?{" "}
-              <Link to="/signup" className="signup-link">
-                Sign up now
-              </Link>
-            </p>
-          </div>
+          {!adminMode && (
+            <div className="signup-prompt">
+              <p className="signup-text">
+                Don't have an account?{" "}
+                <Link to="/signup" className="signup-link">
+                  Sign up now
+                </Link>
+              </p>
+            </div>
+          )}
         </form>
       </div>
 

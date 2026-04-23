@@ -5,6 +5,9 @@ import axios from "axios";
 const API_URL =
   import.meta.env.VITE_API_URL || "https://ims-backend-e4fp.onrender.com/api";
 
+const getLoginRedirectPath = () =>
+  window.location.pathname.startsWith("/admin") ? "/admin-login" : "/login";
+
 // Create axios instance
 const api = axios.create({
   baseURL: API_URL,
@@ -43,7 +46,7 @@ api.interceptors.response.use(
         if (!refreshToken) {
           // No refresh token, redirect to login
           localStorage.clear();
-          window.location.href = "/login";
+          window.location.href = getLoginRedirectPath();
           return Promise.reject(error);
         }
 
@@ -61,7 +64,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // Refresh failed, clear storage and redirect to login
         localStorage.clear();
-        window.location.href = "/login";
+        window.location.href = getLoginRedirectPath();
         return Promise.reject(refreshError);
       }
     }
@@ -168,6 +171,7 @@ export const inventoryAPI = {
   getDeviceRequests: (params) => api.get("/inventory/device-requests/", { params }),
   getDeviceRequest: (id) => api.get(`/inventory/device-requests/${id}/`),
   createDeviceRequest: (data) => api.post("/inventory/device-requests/", data),
+  grantDeviceRequest: (id) => api.post(`/inventory/device-requests/${id}/grant/`),
   approveDeviceRequest: (id) => api.post(`/inventory/device-requests/${id}/approve/`),
   rejectDeviceRequest: (id, reason) =>
     api.post(`/inventory/device-requests/${id}/reject/`, { reason }),
@@ -211,6 +215,9 @@ export const handleAPIError = (error) => {
       Object.keys(data).forEach((key) => {
         errors[key] = Array.isArray(data[key]) ? data[key][0] : data[key];
       });
+      if (!errors.message && errors.non_field_errors) {
+        errors.message = errors.non_field_errors;
+      }
       return errors;
     }
 
