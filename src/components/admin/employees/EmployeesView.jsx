@@ -7,7 +7,6 @@ import "./EmployeesView.css";
 
 export default function EmployeesView({
   employees = [],
-  getDeviceCountForEmployee,
   onRefresh,
 }) {
   const navigate = useNavigate();
@@ -106,7 +105,6 @@ export default function EmployeesView({
             <EmployeeCard
               key={employee.id}
               employee={employee}
-              deviceCount={getDeviceCountForEmployee(employee.id)}
             />
           ))}
         </div>

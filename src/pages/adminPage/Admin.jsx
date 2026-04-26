@@ -346,11 +346,6 @@ function Admin() {
         {activeTab === "employees" && (
           <EmployeesView
             employees={employees}
-            getDeviceCountForEmployee={(id) =>
-              assignments.filter(
-                (a) => (a.employee_id === id || a.employee?.id === id) && a.status === "active",
-              ).length
-            }
             onRefresh={fetchData}
           />
         )}

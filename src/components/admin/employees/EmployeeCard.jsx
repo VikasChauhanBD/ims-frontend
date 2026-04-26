@@ -4,9 +4,10 @@ import "./EmployeeCard.css";
 
 export default function EmployeeCard({
   employee,
-  deviceCount = 0,
   onViewDetails,
 }) {
+  const assignedDevicesCount = employee.assigned_devices_count ?? 0;
+
   // Use is_active boolean from API
   const isActive = employee.is_active === true;
   const statusClasses = isActive
@@ -50,7 +51,7 @@ export default function EmployeeCard({
         <div className="employee-detail">
           <Briefcase className="employee-detail-icon" />
           <span>
-            {deviceCount} device{deviceCount !== 1 ? "s" : ""} assigned
+            {assignedDevicesCount} device{assignedDevicesCount !== 1 ? "s" : ""} assigned
           </span>
         </div>
       </div>
