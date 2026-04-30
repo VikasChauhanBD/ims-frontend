@@ -1,27 +1,9 @@
-/* Content Section */
-.rh-content-section {
-  animation: rhSlideIn 0.4s ease-out;
-  padding-bottom: 2rem;
-}
-
-@keyframes rhSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
+/* ── Section wrapper (keeps original class name) ─────────── */
 .rh-section-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid var(--neutral-200);
+  flex-direction: column;
+  gap: 0;
+  padding-bottom: 2rem;
 }
 
 .rh-section-header h2 {
@@ -30,44 +12,130 @@
   font-weight: 700;
   color: var(--neutral-900);
   letter-spacing: -0.01em;
+  margin: 0;
 }
 
-/* Filter Chips */
+/* ── Top bar ─────────────────────────────────────────────── */
+.rh-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--neutral-200);
+}
+
+.rh-topbar-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rh-subtitle {
+  font-size: 0.82rem;
+  color: var(--neutral-500);
+  margin: 0;
+}
+
+/* ── Request Device button (original preserved) ───────────── */
+.rh-request-btn {
+  background: #4f46e5;
+  color: white;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.rh-request-btn:hover:not(:disabled) {
+  background: #4338ca;
+}
+.rh-request-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* ── Summary stat cards (new) ────────────────────────────── */
+.rh-summary-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 1.25rem;
+}
+
+.rh-stat-card {
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rh-stat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.rh-stat-consent  { background: #e0e7ff; }
+.rh-stat-pending  { background: #fef3c7; }
+.rh-stat-approved { background: #d1fae5; }
+.rh-stat-declined { background: #fee2e2; }
+
+.rh-stat-val {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--neutral-900, #111827);
+  line-height: 1;
+}
+.rh-stat-lbl {
+  font-size: 0.72rem;
+  color: var(--neutral-500, #6b7280);
+  margin-top: 2px;
+}
+
+/* ── Filter chips (original classes preserved) ───────────── */
 .rh-filter-chips {
   display: flex;
   gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
 }
 
 .rh-filter-chip {
   padding: 0.5rem 1rem;
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   transition: all 0.2s ease;
 }
 
-.rh-filter-chip.approved {
-  background: #d1fae5;
-  color: #065f46;
-}
+/* original chip classes */
+.rh-filter-chip.approved { background: #d1fae5; color: #065f46; }
+.rh-filter-chip.pending  { background: #fef3c7; color: #92400e; }
+.rh-filter-chip.declined { background: #fee2e2; color: #991b1b; }
+/* new consent chip */
+.rh-filter-chip.consent  { background: #e0e7ff; color: #3730a3; }
 
-.rh-filter-chip.pending {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.rh-filter-chip.declined {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-/* Tickets List */
+/* ── Tickets list (original) ─────────────────────────────── */
 .rh-tickets-list {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
 }
 
+/* ── Ticket card (original + left-border accent) ─────────── */
 .rh-ticket-card {
   background: transparent;
   backdrop-filter: blur(10px);
@@ -80,11 +148,16 @@
   position: relative;
   overflow: hidden;
 }
-
 .rh-ticket-card:hover {
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
   transform: translateY(-5px);
 }
+
+/* left-border accent per status (new) */
+.rh-card-consent  { border-left: 3px solid #6366f1; }
+.rh-card-pending  { border-left: 3px solid #f59e0b; }
+.rh-card-approved { border-left: 3px solid #10b981; }
+.rh-card-declined { border-left: 3px solid #ef4444; }
 
 .rh-ticket-main {
   display: flex;
@@ -100,6 +173,7 @@
   flex: 1;
 }
 
+/* ── Status badge (original classes preserved) ───────────── */
 .rh-status-badge {
   display: flex;
   align-items: center;
@@ -113,54 +187,19 @@
   flex-shrink: 0;
 }
 
-.rh-request-btn {
-  background: #4f46e5;
-  color: white;
-  padding: 8px 14px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.rh-request-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-
-
-.rh-status-approved {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-.rh-status-approved .rh-ticket-card::before {
-  background: var(--success);
-}
-
-.rh-status-pending {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.rh-status-pending .rh-ticket-card::before {
-  background: var(--warning);
-}
-
-.rh-status-declined {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.rh-status-declined .rh-ticket-card::before {
-  background: var(--danger);
-}
+/* original badge classes */
+.rh-status-approved { background: #d1fae5; color: #065f46; }
+.rh-status-pending  { background: #fef3c7; color: #92400e; }
+.rh-status-declined { background: #fee2e2; color: #991b1b; }
+/* new consent badge */
+.rh-status-consent  { background: #e0e7ff; color: #3730a3; }
 
 .rh-status-icon {
   font-size: 1rem;
   font-weight: 900;
 }
 
+/* ── Ticket info (original) ──────────────────────────────── */
 .rh-ticket-info {
   display: flex;
   flex-direction: column;
@@ -188,10 +227,12 @@
   margin-top: 0.25rem;
 }
 
+/* ── Ticket right (original + consent button) ────────────── */
 .rh-ticket-right {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  gap: 10px;
 }
 
 .rh-ticket-dates {
@@ -223,6 +264,24 @@
   font-family: "SF Mono", "Monaco", monospace;
 }
 
+/* ── Consent button (new) ────────────────────────────────── */
+.rh-consent-btn {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 13px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.rh-consent-btn:hover {
+  background: #4f46e5;
+}
+
+/* ── Reason notes (original) ─────────────────────────────── */
 .rh-ticket-notes {
   background: var(--neutral-50);
   padding: 1rem;
@@ -239,51 +298,27 @@
   margin-right: 0.5rem;
 }
 
-.rh-notes-text {
-  font-weight: 500;
-}
+.rh-notes-text { font-weight: 500; }
 
 .rh-reviewer {
   color: var(--neutral-600);
   font-weight: 600;
 }
 
-/* Responsive Design */
+/* ── Responsive (original breakpoints kept) ──────────────── */
 @media (max-width: 768px) {
-  .rh-section-header {
+  .rh-topbar {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
   }
-
-  .rh-filter-chips {
-    flex-wrap: wrap;
-  }
-
-  .rh-ticket-main {
-    flex-direction: column;
-  }
-
-  .rh-ticket-right {
-    align-items: flex-start;
-  }
-
-  .rh-ticket-dates {
-    align-items: flex-start;
-  }
-
-  .rh-date-item {
-    align-items: flex-start;
-  }
+  .rh-filter-chips { flex-wrap: wrap; }
+  .rh-ticket-main  { flex-direction: column; }
+  .rh-ticket-right { align-items: flex-start; }
+  .rh-ticket-dates { align-items: flex-start; }
+  .rh-date-item    { align-items: flex-start; }
 }
 
 @media (max-width: 480px) {
-  .rh-ticket-card {
-    padding: 1.25rem;
-  }
-
-  .rh-ticket-left {
-    flex-direction: column;
-    gap: 0.75rem;
-  }
+  .rh-ticket-card { padding: 1.25rem; }
+  .rh-ticket-left { flex-direction: column; gap: 0.75rem; }
 }

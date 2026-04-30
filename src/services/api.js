@@ -171,8 +171,8 @@ export const inventoryAPI = {
   getDeviceRequests: (params) => api.get("/inventory/device-requests/", { params }),
   getDeviceRequest: (id) => api.get(`/inventory/device-requests/${id}/`),
   createDeviceRequest: (data) => api.post("/inventory/device-requests/", data),
-  grantDeviceRequest: (id) => api.post(`/inventory/device-requests/${id}/grant/`),
-  approveDeviceRequest: (id) => api.post(`/inventory/device-requests/${id}/approve/`),
+  grantDeviceRequest: (id) => api.post(`/inventory/device-requests/${id}/approve/`),
+  approveDeviceRequest: (id) => api.post(`/inventory/device-requests/${id}/grant/`),
   rejectDeviceRequest: (id, reason) =>
     api.post(`/inventory/device-requests/${id}/reject/`, { reason }),
   getMyDeviceRequests: () => api.get("/inventory/device-requests/"),

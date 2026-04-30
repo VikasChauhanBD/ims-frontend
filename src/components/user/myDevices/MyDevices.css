@@ -1,27 +1,36 @@
-/* Content Section */
+/* ── Slide-in animation (original) ──────────────────────── */
 .md-content-section {
   animation: mdSlideIn 0.4s ease-out;
   padding-bottom: 2rem;
 }
 
 @keyframes mdSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
+/* ── Error state ─────────────────────────────────────────── */
+.md-error {
+  text-align: center;
+  padding: 40px;
+  color: #d32f2f;
+}
+
+/* ── Section header ──────────────────────────────────────── */
 .md-section-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
   padding-bottom: 1rem;
   border-bottom: 2px solid var(--neutral-200);
+  gap: 1rem;
+}
+
+.md-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .md-section-header h2 {
@@ -30,24 +39,55 @@
   font-weight: 700;
   color: var(--neutral-900);
   letter-spacing: -0.01em;
+  margin: 0;
 }
 
+.md-header-sub {
+  font-size: 0.82rem;
+  color: var(--neutral-500);
+  margin: 0;
+}
+
+/* ── Device count badge (original class, new style) ──────── */
 .md-device-count {
-  background: var(--primary);
-  color: white;
-  padding: 0.5rem 1rem;
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 5px 14px;
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-/* Devices Grid */
+/* ── Empty state ─────────────────────────────────────────── */
+.md-empty {
+  padding: 2.5rem;
+  text-align: center;
+  background: #f9fafb;
+  border: 1px dashed #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+.md-empty-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+}
+.md-empty-sub {
+  font-size: 0.82rem;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+/* ── Devices grid (original class) ───────────────────────── */
 .md-devices-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
 }
 
+/* ── Device card (original class + top-border accent) ───── */
 .md-device-card {
   background: transparent;
   backdrop-filter: blur(10px);
@@ -59,14 +99,9 @@
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-}
-
-.md-device-image {
-  width: 100%;
-  max-height: 150px;
-  object-fit: contain;
-  margin-bottom: 0.75rem;
-  border-radius: 8px;
+  border-top-width: 3px;
+  border-top-style: solid;
+  border-top-color: #e5e7eb;
 }
 
 .md-device-card:hover {
@@ -74,197 +109,214 @@
   transform: translateY(-5px);
 }
 
+/* top accent per status */
+.md-card-active    { border-top-color: #10b981; }
+.md-card-assigned  { border-top-color: #10b981; }
+.md-card-in_progress { border-top-color: #3b82f6; }
+.md-card-overdue   { border-top-color: #ef4444; }
+
+/* ── Device image (original) ─────────────────────────────── */
+.md-device-image {
+  width: 100%;
+  max-height: 140px;
+  object-fit: contain;
+  margin-bottom: 0.75rem;
+  border-radius: 8px;
+}
+
+/* ── Card header row ─────────────────────────────────────── */
 .md-device-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 10px;
 }
 
+/* ── Type pill (original class) ──────────────────────────── */
 .md-device-type {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--neutral-600);
-  background: var(--neutral-100);
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
+  background: var(--neutral-100, #f3f4f6);
+  padding: 4px 10px;
+  border-radius: 20px;
 }
 
+/* ── Status badge (original class + values) ──────────────── */
 .md-device-status {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  padding: 0.35rem 0.75rem;
-  border-radius: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+.md-device-status.active,
+.md-device-status.assigned { background: #d1fae5; color: #065f46; }
+.md-device-status.in_progress { background: #dbeafe; color: #1e40af; }
+.md-device-status.overdue  { background: #fee2e2; color: #991b1b; }
 
-.md-device-status.active {
-  background: #d1fae5;
-  color: #065f46;
-}
-
+/* ── Device name (original class) ───────────────────────── */
 .md-device-name {
   font-family: "Clash Display", sans-serif;
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--neutral-900);
-  margin-bottom: 1.25rem;
+  margin-bottom: 12px;
   letter-spacing: -0.01em;
 }
 
+/* ── Detail table (replaces original flex rows) ──────────── */
 .md-device-details {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0;
 }
 
-.md-detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.65rem 0;
-  border-bottom: 1px solid var(--neutral-100);
+.md-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-bottom: 0;
 }
 
-.md-detail-row:last-child {
+.md-detail-table td {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--neutral-100, #f3f4f6);
+}
+
+.md-detail-table tr:last-child td {
   border-bottom: none;
 }
 
+/* keep original class names for compat */
 .md-detail-label {
-  font-size: 0.85rem;
-  color: var(--neutral-600);
+  color: var(--neutral-600, #6b7280);
   font-weight: 500;
+  width: 50%;
 }
 
 .md-detail-value {
-  font-size: 0.9rem;
-  color: var(--neutral-800);
+  text-align: right;
+  color: var(--neutral-800, #1f2937);
   font-weight: 600;
   font-family: "SF Mono", "Monaco", "Courier New", monospace;
+  font-size: 0.78rem;
 }
 
-/* Return Due Countdown */
+/* ── Return countdown (original classes preserved) ───────── */
 .md-return-countdown {
-  background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
-  border: 2px solid #0284c7;
   border-radius: 8px;
   padding: 12px;
   margin-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  border: 0.5px solid;
+}
+
+.md-return-countdown.normal {
+  background: #eff6ff;
+  border-color: #bfdbfe;
 }
 
 .md-return-countdown.urgent {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-color: #d97706;
-}
-
-.md-return-countdown.urgent .countdown-header {
-  color: #92400e;
+  background: #fffbeb;
+  border-color: #fde68a;
 }
 
 .md-return-countdown.overdue {
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  border-color: #dc2626;
+  background: #fef2f2;
+  border-color: #fecaca;
 }
 
-.md-return-countdown.overdue .countdown-header {
-  color: #7f1d1d;
-}
-
+/* countdown-header (original class) */
 .countdown-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 5px;
+  font-size: 0.72rem;
   font-weight: 600;
-  color: #0c4a6e;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
+.md-return-countdown.normal  .countdown-header { color: #1e40af; }
+.md-return-countdown.urgent  .countdown-header { color: #92400e; }
+.md-return-countdown.overdue .countdown-header { color: #991b1b; }
+
+/* countdown-timer (original class) */
 .countdown-timer {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
+/* countdown-value (original class) */
 .countdown-value {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 700;
-  color: #0c4a6e;
   font-family: "SF Mono", "Monaco", "Courier New", monospace;
 }
+.md-return-countdown.normal  .countdown-value { color: #1e3a8a; }
+.md-return-countdown.urgent  .countdown-value { color: #92400e; }
+.md-return-countdown.overdue .countdown-value { color: #991b1b; }
 
-.md-return-countdown.urgent .countdown-value {
-  color: #92400e;
-}
-
-.md-return-countdown.overdue .countdown-value {
-  color: #7f1d1d;
-}
-
+/* return-date (original class) */
 .return-date {
-  font-size: 12px;
-  color: #0c4a6e;
+  font-size: 0.75rem;
   font-weight: 500;
 }
+.md-return-countdown.normal  .return-date { color: #3b82f6; }
+.md-return-countdown.urgent  .return-date { color: #d97706; }
 
-.md-return-countdown.urgent .return-date {
-  color: #92400e;
-}
-
+/* countdown-overdue (original class) */
 .countdown-overdue {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
-  font-weight: 700;
-  color: #7f1d1d;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #991b1b;
 }
 
+/* btn-extend (original class) */
 .btn-extend {
-  padding: 6px 12px;
-  background: #0284c7;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: 7px 12px;
+  border: 0.5px solid;
+  border-radius: 6px;
+  font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-  margin-top: 4px;
+  background: transparent;
+  transition: all 0.15s;
+  margin-top: 2px;
 }
 
-.btn-extend:hover {
-  background: #0369a1;
-  transform: translateY(-1px);
+.md-return-countdown.normal .btn-extend {
+  border-color: #93c5fd;
+  color: #1e40af;
 }
+.md-return-countdown.normal .btn-extend:hover { background: #dbeafe; }
 
 .md-return-countdown.urgent .btn-extend {
-  background: #d97706;
+  border-color: #fbbf24;
+  color: #92400e;
 }
-
-.md-return-countdown.urgent .btn-extend:hover {
-  background: #b45309;
-}
+.md-return-countdown.urgent .btn-extend:hover { background: #fef3c7; }
 
 .md-return-countdown.overdue .btn-extend {
-  background: #dc2626;
+  border-color: #fca5a5;
+  color: #991b1b;
 }
+.md-return-countdown.overdue .btn-extend:hover { background: #fee2e2; }
 
-.md-return-countdown.overdue .btn-extend:hover {
-  background: #b91c1c;
-}
-
-/* Responsive Design */
+/* ── Responsive (original breakpoints) ──────────────────── */
 @media (max-width: 1024px) {
   .md-devices-grid {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 }
 
@@ -272,16 +324,13 @@
   .md-section-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
+    gap: 0.75rem;
   }
-
   .md-devices-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 480px) {
-  .md-device-card {
-    padding: 1.25rem;
-  }
+  .md-device-card { padding: 1.25rem; }
 }
