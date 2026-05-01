@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -13,7 +13,11 @@ import {
   X,
 } from "lucide-react";
 import { inventoryAPI } from "../../../services/api";
-import LoadingSpinner from "../../common/LoadingSpinner";
+import {
+  getTicketStatusLabel,
+  isTicketClosed,
+  normalizeTicketStatus,
+} from "../../../utils/ticketStatus";
 import "./ReportIssue.css";
 
 const ISSUE_TYPES = [
@@ -25,8 +29,9 @@ const ISSUE_TYPES = [
 
 const STATUS_STEPS = [
   { key: "pending", label: "Pending" },
-  { key: "in_repair", label: "In Repair" },
-  { key: "resolved", label: "Resolved" },
+  { key: "approved", label: "Approved" },
+  { key: "on_repair", label: "Repairing Initiated" },
+  { key: "repaired", label: "Repaired" },
 ];
 
 const formatDate = (value) =>
@@ -36,13 +41,24 @@ const formatDate = (value) =>
     day: "numeric",
   });
 
+const formatDateTime = (value) =>
+  new Date(value).toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
 const getStepIndex = (status) => {
+  const normalizedStatus = normalizeTicketStatus(status);
   const statusMap = {
     pending: 0,
-    in_repair: 1,
-    resolved: 2,
+    approved: 1,
+    on_repair: 2,
+    repaired: 3,
   };
-  return statusMap[status] || 0;
+  return statusMap[normalizedStatus] || 0;
 };
 
 export default function ReportIssue({
@@ -61,19 +77,29 @@ export default function ReportIssue({
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
 
-  useEffect(() => {
-    fetchData();
+  const setIssueReports = useCallback((tickets) => {
+    setReports(tickets.filter((ticket) => ticket.ticket_type === "issue"));
+    setLastSyncedAt(new Date().toISOString());
   }, []);
 
-  useEffect(() => {
-    if (forceOpen) {
-      setIsOpen(true);
-      setView("report");
-    }
-  }, [forceOpen]);
+  const fetchReports = useCallback(async () => {
+    try {
+      const ticketsRes = await inventoryAPI.getMyTickets();
+      const allTickets = Array.isArray(ticketsRes.data)
+        ? ticketsRes.data
+        : ticketsRes.data.results || [];
 
-  const fetchData = async () => {
+      setIssueReports(allTickets);
+      setError(null);
+    } catch (err) {
+      setError(err.message || "Failed to fetch issue updates");
+      console.error("Error refreshing issue reports:", err);
+    }
+  }, [setIssueReports]);
+
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -91,18 +117,42 @@ export default function ReportIssue({
       const allTickets = Array.isArray(ticketsRes.data)
         ? ticketsRes.data
         : ticketsRes.data.results || [];
-      setReports(allTickets.filter((ticket) => ticket.ticket_type === "issue"));
+      setIssueReports(allTickets);
     } catch (err) {
       setError(err.message || "Failed to fetch issue data");
       console.error("Error fetching issue widget data:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [setIssueReports]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (forceOpen) {
+      setIsOpen(true);
+      setView("report");
+    }
+  }, [forceOpen]);
+
+  useEffect(() => {
+    if (!isOpen || view !== "history") return undefined;
+
+    fetchReports();
+    const intervalId = window.setInterval(() => {
+      fetchReports();
+    }, 10000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [fetchReports, isOpen, view]);
 
   const selectedDeviceObj = devices.find((device) => device.id === selectedDevice);
   const openIssueCount = useMemo(
-    () => reports.filter((report) => report.status !== "resolved").length,
+    () => reports.filter((report) => !isTicketClosed(report.status)).length,
     [reports],
   );
 
@@ -199,7 +249,10 @@ export default function ReportIssue({
             <button
               type="button"
               className={`riw-tab ${view === "history" ? "riw-tab-active" : ""}`}
-              onClick={() => setView("history")}
+              onClick={() => {
+                setView("history");
+                fetchReports();
+              }}
             >
               My Reports
               {reports.length > 0 && (
@@ -334,8 +387,14 @@ export default function ReportIssue({
             {view === "history" && (
               <div className="riw-history-view">
                 <div className="riw-chat-bubble riw-chat-bubble-bot">
-                  Track your submitted issue tickets here. Open items stay highlighted until they are resolved.
+                  Track your submitted issue tickets here. Open items stay highlighted until they are repaired or rejected.
                 </div>
+
+                {lastSyncedAt && (
+                  <p className="riw-sync-note">
+                    Last updated: {formatDateTime(lastSyncedAt)}
+                  </p>
+                )}
 
                 {loading ? (
                   <div className="riw-state">Loading your reports...</div>
@@ -349,10 +408,16 @@ export default function ReportIssue({
                 ) : (
                   <div className="riw-history-list">
                     {reports.map((report) => {
-                      const currentStep = getStepIndex(report.status || "pending");
+                      const normalizedStatus = normalizeTicketStatus(report.status || "pending");
+                      const currentStep = getStepIndex(normalizedStatus);
                       const issueTypeLabel = ISSUE_TYPES.find(
                         (type) => type.id === report.subject?.toLowerCase(),
                       )?.label || report.subject || "Issue";
+                      const deviceLabel = report.device_details
+                        ? [report.device_details.brand, report.device_details.model, report.device_details.name]
+                            .filter(Boolean)
+                            .join(" ")
+                        : report.device?.device_name || report.device?.name || "Device";
 
                       return (
                         <article key={report.id} className="riw-history-card">
@@ -360,11 +425,11 @@ export default function ReportIssue({
                             <div>
                               <p className="riw-history-ticket">{report.ticket_number}</p>
                               <h3 className="riw-history-device">
-                                {report.device?.device_name || report.device?.name || "Device"}
+                                {deviceLabel}
                               </h3>
                             </div>
-                            <span className={`riw-status riw-status-${report.status || "pending"}`}>
-                              {report.status || "pending"}
+                            <span className={`riw-status riw-status-${normalizedStatus}`}>
+                              {getTicketStatusLabel(normalizedStatus)}
                             </span>
                           </div>
 
@@ -381,15 +446,24 @@ export default function ReportIssue({
                               const active = index === currentStep;
                               return (
                                 <div key={step.key} className="riw-step">
-                                  <div
-                                    className={`riw-step-dot ${
-                                      done
-                                        ? "riw-step-done"
-                                        : active
-                                          ? "riw-step-active"
-                                          : ""
-                                    }`}
-                                  />
+                                  <div className="riw-step-track">
+                                    {index < STATUS_STEPS.length - 1 && (
+                                      <div
+                                        className={`riw-step-line ${
+                                          index < currentStep ? "riw-step-line-done" : ""
+                                        }`}
+                                      />
+                                    )}
+                                    <div
+                                      className={`riw-step-dot ${
+                                        done
+                                          ? "riw-step-done"
+                                          : active
+                                            ? "riw-step-active"
+                                            : ""
+                                      }`}
+                                    />
+                                  </div>
                                   <span className="riw-step-label">{step.label}</span>
                                 </div>
                               );

@@ -54,17 +54,27 @@
   color: #777;
 }
 
-.status-open {
+.status-pending {
   color: #ff9800;
   font-weight: 600;
 }
 
-.status-inprogress {
+.status-approved {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.status-on_repair {
   color: #2196f3;
   font-weight: 600;
 }
 
-.status-closed {
+.status-repaired {
   color: #4caf50;
+  font-weight: 600;
+}
+
+.status-rejected {
+  color: #dc2626;
   font-weight: 600;
 }

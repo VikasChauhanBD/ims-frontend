@@ -1,6 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import "./TicketRequestsView.css";
 import { inventoryAPI } from "../../../services/api";
+import {
+  getTicketStatusLabel,
+  normalizeTicketStatus,
+} from "../../../utils/ticketStatus";
 
 export default function TicketRequestsView({
   tickets,
@@ -9,10 +13,12 @@ export default function TicketRequestsView({
   employees,
   onRefresh,
 }) {
+  const [updatingTicketId, setUpdatingTicketId] = useState(null);
+
   const getDeviceName = (id) => {
     if (!id) return "N/A";
     const d = devices.find((x) => x.id === id || x.id === (x.device && x.device.id));
-    return d ? `${d.brand} ${d.model}` : "Unknown Device";
+    return d ? [d.brand, d.model, d.name].filter(Boolean).join(" ") : "Unknown Device";
   };
 
   const getEmployeeName = (id) => {
@@ -21,24 +27,21 @@ export default function TicketRequestsView({
     return e ? e.full_name : "Unknown User";
   };
 
-  const handleUpdateStatus = async (ticketId, action) => {
-    // Map action to backend status value
-    let statusValue = null;
-    if (action === "approve") statusValue = "in_progress";
-    if (action === "reject") statusValue = "rejected";
-
+  const handleUpdateStatus = async (ticketId, statusValue) => {
     if (!statusValue) return;
     try {
+      setUpdatingTicketId(ticketId);
       await inventoryAPI.updateTicket(ticketId, { status: statusValue });
-      // update local copy
       setTickets((prev) =>
         prev.map((t) =>
-          t.id === ticketId ? { ...t, status: statusValue } : t
+          t.id === ticketId ? { ...t, status: normalizeTicketStatus(statusValue) } : t
         )
       );
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error("Failed to update ticket status", err);
+    } finally {
+      setUpdatingTicketId(null);
     }
   };
 
@@ -52,8 +55,9 @@ export default function TicketRequestsView({
 
       <div className="ticket-grid">
         {tickets.map((ticket) => {
-          const statusClass = ticket.status === "in_progress" ? "approved" : ticket.status;
-          const displayStatus = statusClass.replace(/_/g, " ");
+          const normalizedStatus = normalizeTicketStatus(ticket.status);
+          const displayStatus = getTicketStatusLabel(ticket.status);
+          const isUpdating = updatingTicketId === ticket.id;
           return (
             <div key={ticket.id} className="ticket-card">
               <h3 className="ticket-title">
@@ -70,7 +74,9 @@ export default function TicketRequestsView({
               <p>
                 <strong>Device:</strong>{" "}
                 {ticket.device_details
-                  ? `${ticket.device_details.brand} ${ticket.device_details.model}`
+                  ? [ticket.device_details.brand, ticket.device_details.model, ticket.device_details.name]
+                      .filter(Boolean)
+                      .join(" ")
                   : getDeviceName(ticket.device)}
               </p>
 
@@ -78,27 +84,55 @@ export default function TicketRequestsView({
                 <strong>Priority:</strong> {ticket.priority}
               </p>
 
-              <p className={`ticket-status status-${statusClass}`}>
+              <p className={`ticket-status status-${normalizedStatus}`}>
                 Status: {displayStatus}
               </p>
 
               <p className="ticket-description">{ticket.description}</p>
 
-              <div className="ticket-actions">
-                <button
-                  className="btn-approve"
-                  onClick={() => handleUpdateStatus(ticket.id, "approve")}
-                >
-                  Approve
-                </button>
+              {normalizedStatus === "pending" && (
+                <div className="ticket-actions">
+                  <button
+                    className="btn-approve"
+                    onClick={() => handleUpdateStatus(ticket.id, "approved")}
+                    disabled={isUpdating}
+                  >
+                    Approve
+                  </button>
 
-                <button
-                  className="btn-reject"
-                  onClick={() => handleUpdateStatus(ticket.id, "reject")}
-                >
-                  Reject
-                </button>
-              </div>
+                  <button
+                    className="btn-reject"
+                    onClick={() => handleUpdateStatus(ticket.id, "rejected")}
+                    disabled={isUpdating}
+                  >
+                    Reject
+                  </button>
+                </div>
+              )}
+
+              {normalizedStatus === "approved" && (
+                <div className="ticket-actions">
+                  <button
+                    className="btn-progress"
+                    onClick={() => handleUpdateStatus(ticket.id, "on_repair")}
+                    disabled={isUpdating}
+                  >
+                    Start Repair
+                  </button>
+                </div>
+              )}
+
+              {normalizedStatus === "on_repair" && (
+                <div className="ticket-actions">
+                  <button
+                    className="btn-complete"
+                    onClick={() => handleUpdateStatus(ticket.id, "repaired")}
+                    disabled={isUpdating}
+                  >
+                    Mark Repaired
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}

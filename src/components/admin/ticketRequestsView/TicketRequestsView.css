@@ -49,11 +49,17 @@
 .status-approved {
   color: #4caf50;
 }
+.status-pending {
+  color: #ff9800;
+}
+.status-on_repair {
+  color: #2196f3;
+}
+.status-repaired {
+  color: #2e7d32;
+}
 .status-rejected {
   color: #f44336;
-}
-.status-open {
-  color: #ff9800;
 }
 
 .ticket-actions {
@@ -78,4 +84,29 @@
   color: white;
   cursor: pointer;
   border: none;
+}
+
+.btn-progress,
+.btn-complete {
+  padding: 8px 14px;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-progress {
+  background: #2563eb;
+}
+
+.btn-complete {
+  background: #2e7d32;
+}
+
+.btn-approve:disabled,
+.btn-reject:disabled,
+.btn-progress:disabled,
+.btn-complete:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }

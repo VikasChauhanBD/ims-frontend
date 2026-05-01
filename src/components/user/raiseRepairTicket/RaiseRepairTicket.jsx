@@ -2,27 +2,28 @@ import { useState, useEffect, useRef } from "react";
 import {
   Wrench,
   FileText,
-  User,
   Monitor,
   ImageIcon,
   Upload,
   X,
   CheckCircle2,
-  Clock,
   AlertCircle,
   Ticket,
   Send,
 } from "lucide-react";
 import { inventoryAPI } from "../../../services/api";
-import LoadingSpinner from "../../common/LoadingSpinner";
+import {
+  getTicketStatusLabel,
+  normalizeTicketStatus,
+} from "../../../utils/ticketStatus";
 import "./RaiseRepairTicket.css";
 
 const STATUS_LABELS = {
   pending: { label: "Pending", color: "#FFA500" },
-  in_progress: { label: "In Progress", color: "#2196F3" },
-  resolved: { label: "Resolved", color: "#4CAF50" },
+  approved: { label: "Approved", color: "#16A34A" },
+  on_repair: { label: "Repairing Initiated", color: "#2196F3" },
+  repaired: { label: "Repaired", color: "#4CAF50" },
   rejected: { label: "Rejected", color: "#F44336" },
-  closed: { label: "Closed", color: "#999" },
 };
 
 
@@ -380,7 +381,10 @@ export default function RaiseRepairTicket({ onTicketCreated }) {
             </div>
           ) : (
             <div className="rrt-list">
-              {myTickets.map((ticket) => (
+              {myTickets.map((ticket) => {
+                const normalizedStatus = normalizeTicketStatus(ticket.status);
+
+                return (
                 <div key={ticket.id} className="rrt-ticket-card">
                   <div className="rrt-card-header">
                     <div className="rrt-card-title">
@@ -391,10 +395,10 @@ export default function RaiseRepairTicket({ onTicketCreated }) {
                       className="rrt-status-badge"
                       style={{
                         backgroundColor:
-                          STATUS_LABELS[ticket.status]?.color || "#999",
+                          STATUS_LABELS[normalizedStatus]?.color || "#999",
                       }}
                     >
-                      {STATUS_LABELS[ticket.status]?.label || ticket.status}
+                      {STATUS_LABELS[normalizedStatus]?.label || getTicketStatusLabel(ticket.status)}
                     </span>
                   </div>
 
@@ -423,7 +427,7 @@ export default function RaiseRepairTicket({ onTicketCreated }) {
                     )}
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </div>

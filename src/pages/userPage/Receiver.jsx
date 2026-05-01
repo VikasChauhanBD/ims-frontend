@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
   Package,
@@ -134,7 +134,7 @@ function Receiver() {
         authAPI.getCurrentUser(),
         inventoryAPI.getDevices(),
         inventoryAPI.getAssignments(),
-        inventoryAPI.getTickets(),
+        inventoryAPI.getMyTickets(),
         inventoryAPI.getMyDeviceRequests(),
       ]);
 

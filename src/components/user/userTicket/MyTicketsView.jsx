@@ -1,10 +1,21 @@
 import React from "react";
 import "./MyTicketsView.css";
+import {
+  getTicketStatusLabel,
+  normalizeTicketStatus,
+} from "../../../utils/ticketStatus";
 
 export default function MyTicketsView({ tickets, devices }) {
-  const getDeviceName = (deviceId) => {
+  const getDeviceName = (ticket) => {
+    if (ticket.device_details) {
+      return [ticket.device_details.brand, ticket.device_details.model, ticket.device_details.name]
+        .filter(Boolean)
+        .join(" ");
+    }
+
+    const deviceId = ticket.device_id || ticket.device;
     const device = devices.find((d) => d.id === deviceId);
-    return device ? `${device.brand} ${device.model}` : "Unknown Device";
+    return device ? [device.brand, device.model, device.name].filter(Boolean).join(" ") : "Unknown Device";
   };
 
   return (
@@ -15,20 +26,24 @@ export default function MyTicketsView({ tickets, devices }) {
         <p className="user-no-tickets">No tickets found.</p>
       ) : (
         <div className="user-tickets-list">
-          {tickets.map((ticket) => (
+          {tickets.map((ticket) => {
+            const normalizedStatus = normalizeTicketStatus(ticket.status);
+            return (
             <div key={ticket.id} className="user-ticket-card">
-              <h3 className="user-ticket-title">{ticket.title}</h3>
+              <h3 className="user-ticket-title">
+                {ticket.ticket_number || "Ticket"}{ticket.subject ? ` - ${ticket.subject}` : ""}
+              </h3>
 
               <p>
-                <strong>Device:</strong> {getDeviceName(ticket.device_id)}
+                <strong>Device:</strong> {getDeviceName(ticket)}
               </p>
               <p>
                 <strong>Priority:</strong> {ticket.priority}
               </p>
               <p>
                 <strong>Status:</strong>{" "}
-                <span className={`status-${ticket.status}`}>
-                  {ticket.status}
+                <span className={`status-${normalizedStatus}`}>
+                  {getTicketStatusLabel(ticket.status)}
                 </span>
               </p>
 
@@ -40,7 +55,7 @@ export default function MyTicketsView({ tickets, devices }) {
                 </span>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>
