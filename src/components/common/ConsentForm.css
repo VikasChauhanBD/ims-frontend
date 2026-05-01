@@ -241,6 +241,48 @@
   margin: 6px 0;
 }
 
+/* Tick list (Signature step) */
+.consent-acknowledgement-list {
+  margin: 12px 0 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.consent-acknowledgement-item {
+  list-style: decimal;
+}
+
+.consent-acknowledgement-label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: #1e40af;
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+  user-select: none;
+}
+
+.consent-acknowledgement-label input[type="checkbox"] {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+  flex: 0 0 auto;
+}
+
+.consent-responsibility {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(59, 130, 246, 0.35);
+}
+
+.consent-responsibility-label strong {
+  color: #0f172a;
+}
+
 /* Signature Section */
 .consent-signature-section {
   background: #f0f9ff;

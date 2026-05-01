@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X, Upload, CheckCircle } from "lucide-react";
 import { uploadImage, validateImageFile } from "../../services/imageUpload";
 import "./ConsentForm.css";
@@ -10,24 +11,99 @@ export default function ConsentForm({
   onSubmit,
   isLoading = false,
 }) {
+  const acknowledgementItems = [
+    "I have received the device in the condition mentioned above.",
+    "I will use the device only for official purposes.",
+    "I am responsible for the safekeeping and security of the device.",
+    "I will report any damage or loss immediately to the admin.",
+    "I will return the device as requested by the company.",
+  ];
+
+  const employeeName =
+    assignment?.employee_details?.full_name ||
+    assignment?.employee?.full_name ||
+    assignment?.employee_name ||
+    "";
+  const employeeId =
+    assignment?.employee_details?.employee_id ||
+    assignment?.employee?.employee_id ||
+    assignment?.employee_id ||
+    "";
+  const deviceName =
+    assignment?.device_details?.name ||
+    assignment?.device?.name ||
+    [assignment?.device_details?.brand, assignment?.device_details?.model]
+      .filter(Boolean)
+      .join(" ")
+      .trim() ||
+    "";
+  const deviceId =
+    assignment?.device_details?.device_id ||
+    assignment?.device?.device_id ||
+    assignment?.device_id ||
+    "";
+
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    employee_name: assignment?.employee_details?.full_name || "",
-    employee_id: assignment?.employee_details?.employee_id || "",
-    device_name: assignment?.device_details?.name || "",
-    device_id: assignment?.device_details?.device_id || "",
+    employee_name: employeeName,
+    employee_id: employeeId,
+    device_name: deviceName,
+    device_id: deviceId,
     received_date: new Date().toISOString().split("T")[0],
     condition: "excellent",
     accessories: "",
-    signature_text: "",
-    signature_image: null,
   });
 
   const [errors, setErrors] = useState({});
   const [uploadedImages, setUploadedImages] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [ackChecks, setAckChecks] = useState(
+    acknowledgementItems.map(() => false),
+  );
+  const [responsibilityChecked, setResponsibilityChecked] = useState(false);
   const fileInputRef = useRef(null);
   const signatureCanvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen || !assignment) return;
+    setCurrentStep(1);
+    setErrors({});
+    setUploadedImages([]);
+    setUploading(false);
+    setAckChecks(acknowledgementItems.map(() => false));
+    setResponsibilityChecked(false);
+    setFormData({
+      employee_name:
+        assignment?.employee_details?.full_name ||
+        assignment?.employee?.full_name ||
+        assignment?.employee_name ||
+        "",
+      employee_id:
+        assignment?.employee_details?.employee_id ||
+        assignment?.employee?.employee_id ||
+        assignment?.employee_id ||
+        "",
+      device_name:
+        assignment?.device_details?.name ||
+        assignment?.device?.name ||
+        [
+          assignment?.device_details?.brand,
+          assignment?.device_details?.model,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .trim() ||
+        "",
+      device_id:
+        assignment?.device_details?.device_id ||
+        assignment?.device?.device_id ||
+        assignment?.device_id ||
+        "",
+      received_date: new Date().toISOString().split("T")[0],
+      condition: "excellent",
+      accessories: "",
+    });
+  }, [assignment, isOpen]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -74,16 +150,6 @@ export default function ConsentForm({
     }
   };
 
-  const handleSignature = () => {
-    const text = prompt("Please sign with your full name:");
-    if (text) {
-      setFormData((prev) => ({
-        ...prev,
-        signature_text: text,
-      }));
-    }
-  };
-
   const validateStep = (step) => {
     const newErrors = {};
 
@@ -91,8 +157,13 @@ export default function ConsentForm({
       if (!formData.condition) newErrors.condition = "Condition is required";
       if (!formData.received_date) newErrors.received_date = "Receipt date is required";
     } else if (step === 2) {
-      if (!formData.signature_text && !formData.signature_image) {
-        newErrors.signature = "Signature is required";
+      const allAcksChecked = ackChecks.every(Boolean);
+      if (!allAcksChecked) {
+        newErrors.acknowledgements = "Please tick all acknowledgements to continue";
+      }
+      if (!responsibilityChecked) {
+        newErrors.responsibility =
+          "Please confirm responsibility acknowledgement to continue";
       }
     } else if (step === 3) {
       if (uploadedImages.length === 0) {
@@ -130,7 +201,11 @@ export default function ConsentForm({
         received_date: formData.received_date,
         condition: formData.condition,
         accessories: formData.accessories,
-        signature: formData.signature_text,
+        acknowledgements: acknowledgementItems.map((text, idx) => ({
+          text,
+          accepted: Boolean(ackChecks[idx]),
+        })),
+        responsibility_acknowledged: Boolean(responsibilityChecked),
       },
       consent_images: uploadedImages,
     };
@@ -141,7 +216,7 @@ export default function ConsentForm({
 
   if (!isOpen || !assignment) return null;
 
-  return (
+  const modal = (
     <div className="consent-modal-overlay">
       <div className="consent-modal-container">
         <div className="consent-modal-header">
@@ -282,50 +357,59 @@ export default function ConsentForm({
                   I hereby acknowledge receipt of the above device and confirm
                   that:
                 </p>
-                <ul className="consent-acknowledgement">
-                  <li>
-                    I have received the device in the condition mentioned above
-                  </li>
-                  <li>I will use the device only for official purposes</li>
-                  <li>
-                    I am responsible for the safekeeping and security of the
-                    device
-                  </li>
-                  <li>
-                    I will report any damage or loss immediately to the admin
-                  </li>
-                  <li>I will return the device as requested by the company</li>
-                </ul>
-              </div>
+                <ol className="consent-acknowledgement-list">
+                  {acknowledgementItems.map((text, idx) => (
+                    <li key={idx} className="consent-acknowledgement-item">
+                      <label className="consent-acknowledgement-label">
+                        <input
+                          type="checkbox"
+                          checked={ackChecks[idx]}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setAckChecks((prev) =>
+                              prev.map((v, i) => (i === idx ? checked : v)),
+                            );
+                            if (errors.acknowledgements) {
+                              setErrors((prev) => ({
+                                ...prev,
+                                acknowledgements: "",
+                              }));
+                            }
+                          }}
+                        />
+                        <span>{text}</span>
+                      </label>
+                    </li>
+                  ))}
+                </ol>
 
-              <div className="consent-form-group">
-                <label>Your Signature (Full Name) *</label>
-                <div className="signature-input-group">
-                  <input
-                    type="text"
-                    name="signature_text"
-                    value={formData.signature_text}
-                    onChange={handleInputChange}
-                    placeholder="Type your full name as signature"
-                    className={errors.signature ? "input-error" : ""}
-                  />
-                  <button
-                    type="button"
-                    className="signature-btn"
-                    onClick={handleSignature}
-                  >
-                    Verify
-                  </button>
+                <div className="consent-responsibility">
+                  <label className="consent-acknowledgement-label consent-responsibility-label">
+                    <input
+                      type="checkbox"
+                      checked={responsibilityChecked}
+                      onChange={(e) => {
+                        setResponsibilityChecked(e.target.checked);
+                        if (errors.responsibility) {
+                          setErrors((prev) => ({ ...prev, responsibility: "" }));
+                        }
+                      }}
+                    />
+                    <span>
+                      <strong>
+                        I take full responsibility for this device. If it is
+                        damaged, lost, or broken, I will bear the cost and
+                        consequences as per company policy.
+                      </strong>
+                    </span>
+                  </label>
                 </div>
-                {formData.signature_text && (
-                  <div className="signature-preview">
-                    <p style={{ fontStyle: "italic", color: "#666" }}>
-                      {formData.signature_text}
-                    </p>
-                  </div>
+
+                {errors.acknowledgements && (
+                  <span className="field-error">{errors.acknowledgements}</span>
                 )}
-                {errors.signature && (
-                  <span className="field-error">{errors.signature}</span>
+                {errors.responsibility && (
+                  <span className="field-error">{errors.responsibility}</span>
                 )}
               </div>
             </div>
@@ -451,4 +535,11 @@ export default function ConsentForm({
       </div>
     </div>
   );
+
+  // Render in a portal to avoid parent stacking-context issues (e.g. transforms).
+  if (typeof document !== "undefined") {
+    return createPortal(modal, document.body);
+  }
+
+  return modal;
 }

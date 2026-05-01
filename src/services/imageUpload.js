@@ -6,8 +6,18 @@
 export const uploadImage = async (file) => {
   if (!file) return null;
 
+  const enableVercelBlob = import.meta.env.VITE_ENABLE_VERCEL_BLOB === "true";
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+  // Prefer Vercel Blob (requires serverless upload endpoint)
+  if (enableVercelBlob) {
+    try {
+      return await uploadToVercelBlob(file);
+    } catch (error) {
+      console.warn("Vercel Blob upload failed, falling back.", error);
+    }
+  }
 
   // Use Cloudinary if configured
   if (cloudName && uploadPreset) {
@@ -16,6 +26,28 @@ export const uploadImage = async (file) => {
 
   // Fallback to base64 conversion for development
   return await convertToBase64(file);
+};
+
+/**
+ * Upload to Vercel Blob via serverless API
+ */
+const uploadToVercelBlob = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch("/api/blob/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || "Upload failed");
+  }
+
+  const data = await response.json();
+  if (!data?.url) throw new Error("Upload failed: missing url");
+  return data.url;
 };
 
 /**

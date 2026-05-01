@@ -91,6 +91,8 @@
 .admin-content {
   width: 70%;
   margin: 0 auto;
+  position: relative;
+  min-height: 320px;
 }
 
 /* ------------------------- Responsive Style ----------------------- */

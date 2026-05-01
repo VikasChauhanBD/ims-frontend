@@ -171,6 +171,7 @@ export const inventoryAPI = {
   getDeviceRequests: (params) => api.get("/inventory/device-requests/", { params }),
   getDeviceRequest: (id) => api.get(`/inventory/device-requests/${id}/`),
   createDeviceRequest: (data) => api.post("/inventory/device-requests/", data),
+  deleteDeviceRequest: (id) => api.delete(`/inventory/device-requests/${id}/`),
   grantDeviceRequest: (id) => api.post(`/inventory/device-requests/${id}/approve/`),
   approveDeviceRequest: (id) => api.post(`/inventory/device-requests/${id}/grant/`),
   rejectDeviceRequest: (id, reason) =>

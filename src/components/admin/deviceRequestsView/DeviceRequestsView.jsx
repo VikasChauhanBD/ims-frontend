@@ -422,7 +422,9 @@ export default function DeviceRequestsView({
                       </>
                     )}
 
-                    {request.status === "approved" &&
+                    {(request.status === "approved" ||
+                      request.status === "consent_pending" ||
+                      request.status === "active") &&
                       request.assignment_details &&
                       request.assignment_details.consent_form_data &&
                       !request.assignment_details.consent_approved && (
@@ -442,7 +444,9 @@ export default function DeviceRequestsView({
                         </button>
                       )}
 
-                    {request.status === "approved" &&
+                    {(request.status === "approved" ||
+                      request.status === "consent_pending" ||
+                      request.status === "active") &&
                       request.assignment_details &&
                       request.assignment_details.return_form_pending && (
                         <button

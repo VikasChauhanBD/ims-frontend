@@ -71,6 +71,8 @@
 .receiver-content {
   width: 70%;
   margin: 0 auto;
+  position: relative;
+  min-height: 280px;
 }
 
 /* ------------------------- Responsive Style ----------------------- */

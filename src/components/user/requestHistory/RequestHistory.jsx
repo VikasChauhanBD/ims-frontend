@@ -186,10 +186,11 @@
 // };
 
 // export default RequestHistory;
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import "./RequestHistory.css";
-import { useNavigate } from "react-router-dom";
 import { inventoryAPI } from "../../../services/api";
+import ConsentForm from "../../common/ConsentForm";
+import PopupModal from "../../common/PopupModal";
 
 const RequestHistory = ({
   requests = [],
@@ -198,10 +199,25 @@ const RequestHistory = ({
   onRequestDevice,
   onDelete,
 }) => {
-  const navigate = useNavigate();
-
   const [deletingId, setDeletingId] = useState(null);
   const [deleteError, setDeleteError] = useState("");
+  const [consentOpen, setConsentOpen] = useState(false);
+  const [consentAssignment, setConsentAssignment] = useState(null);
+  const [activeConsentRequestId, setActiveConsentRequestId] = useState(null);
+  const [submittedConsentRequestIds, setSubmittedConsentRequestIds] = useState(
+    new Set(),
+  );
+  const [submittedConsentAtByRequestId, setSubmittedConsentAtByRequestId] =
+    useState({});
+  const [openingConsentRequestId, setOpeningConsentRequestId] = useState(null);
+  const [submittingConsent, setSubmittingConsent] = useState(false);
+  const [consentError, setConsentError] = useState("");
+  const [popup, setPopup] = useState({
+    open: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   const getStatusClass = (status) => {
     switch (status) {
@@ -247,7 +263,11 @@ const RequestHistory = ({
   };
 
   const hasActiveRequest = requests.some(
-    (req) => req.status === "pending" || req.status === "approved"
+    (req) =>
+      req.status === "pending" ||
+      req.status === "approved" ||
+      req.status === "consent_pending" ||
+      req.status === "active"
   );
 
   const formatDate = (dateString) => {
@@ -259,10 +279,14 @@ const RequestHistory = ({
     });
   };
 
-  const statusCounts = requests.reduce((acc, r) => {
-    acc[r.status] = (acc[r.status] || 0) + 1;
-    return acc;
-  }, {});
+  const statusCounts = useMemo(
+    () =>
+      requests.reduce((acc, r) => {
+        acc[r.status] = (acc[r.status] || 0) + 1;
+        return acc;
+      }, {}),
+    [requests],
+  );
 
   if (loading) {
     return (
@@ -296,7 +320,139 @@ const RequestHistory = ({
     }
   };
 
+  const normalizeRequestObject = (maybeResponseData) => {
+    // Some endpoints return { request: {...} }, others return the request object directly
+    return maybeResponseData?.request || maybeResponseData;
+  };
+
+  const deriveAssignmentFromRequest = (req, fetched) => {
+    const fetchedReq = normalizeRequestObject(fetched);
+    const raw =
+      fetchedReq?.assignment_details ||
+      fetchedReq?.assignment ||
+      req?.assignment_details ||
+      req?.assignment ||
+      null;
+    return raw;
+  };
+
+  const deriveAssignmentIdFromRequest = (req, fetched) => {
+    const fetchedReq = normalizeRequestObject(fetched);
+    const candidate =
+      fetchedReq?.assignment_id ||
+      fetchedReq?.assignment ||
+      req?.assignment_id ||
+      req?.assignment ||
+      null;
+    // assignment sometimes is an object, sometimes an id
+    if (candidate && typeof candidate === "object") return candidate.id || null;
+    return candidate || null;
+  };
+
+  const openConsentForm = async (request) => {
+    setConsentError("");
+    setOpeningConsentRequestId(request?.id ?? null);
+    try {
+      // Prefer assignment already embedded in the request list
+      let assignment = deriveAssignmentFromRequest(request, null);
+
+      // If not present, fetch the request details to get assignment_details
+      let requestDetails = null;
+      if (!assignment) {
+        const response = await inventoryAPI.getDeviceRequest(request.id);
+        requestDetails = response.data;
+        assignment = deriveAssignmentFromRequest(request, requestDetails);
+      }
+
+      // If still not present, try resolving assignment by id (backend might return assignment_id only)
+      if (!assignment) {
+        const assignmentId = deriveAssignmentIdFromRequest(request, requestDetails);
+        if (assignmentId) {
+          const assignmentRes = await inventoryAPI.getAssignment(assignmentId);
+          assignment = assignmentRes.data;
+        }
+      }
+
+      if (!assignment || !assignment.id) {
+        throw new Error(
+          "Consent form is not available for this request yet. (Assignment not created)",
+        );
+      }
+
+      setConsentAssignment(assignment);
+      setActiveConsentRequestId(request.id);
+      setConsentOpen(true);
+    } catch (err) {
+      console.error("Failed to open consent form", err);
+      const message =
+        err.response?.data?.detail ||
+        err.response?.data?.message ||
+        err.message ||
+        "Unable to open consent form";
+      setConsentError(message);
+      setPopup({
+        open: true,
+        title: "Unable to Open Consent",
+        message,
+        type: "error",
+      });
+    } finally {
+      setOpeningConsentRequestId(null);
+    }
+  };
+
+  const handleSubmitConsent = async (consentData) => {
+    if (!consentAssignment?.id) return;
+    setSubmittingConsent(true);
+    setConsentError("");
+    try {
+      await inventoryAPI.submitConsent(consentAssignment.id, consentData);
+
+      if (activeConsentRequestId) {
+        setSubmittedConsentRequestIds((prev) => {
+          const next = new Set(prev);
+          next.add(activeConsentRequestId);
+          return next;
+        });
+        setSubmittedConsentAtByRequestId((prev) => ({
+          ...prev,
+          [activeConsentRequestId]: new Date().toISOString(),
+        }));
+      }
+
+      setConsentOpen(false);
+      setConsentAssignment(null);
+      setActiveConsentRequestId(null);
+      setPopup({
+        open: true,
+        title: "Consent Form Submitted",
+        message:
+          "Your consent form is submitted successfully. Please wait for admin approval.",
+        type: "success",
+      });
+      if (onDelete) await onDelete(); // refresh list (reusing callback hook)
+    } catch (err) {
+      console.error("Error submitting consent:", err);
+      setConsentError(
+        err.response?.data?.detail ||
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to submit consent form",
+      );
+    } finally {
+      setSubmittingConsent(false);
+    }
+  };
+
+  const isConsentSubmitted = (request) =>
+    submittedConsentRequestIds.has(request?.id) ||
+    Boolean(
+      request?.assignment_details?.consent_form_data &&
+        Object.keys(request.assignment_details.consent_form_data || {}).length > 0,
+    );
+
   return (
+    <>
     <div className="rh-section-header">
       {/* Top bar */}
       <div className="rh-topbar">
@@ -403,10 +559,26 @@ const RequestHistory = ({
                 <div className="rh-ticket-info">
                   <h3 className="rh-ticket-id">{request.id}</h3>
                   <p className="rh-ticket-type">
-                    {request.device_type}
+                    {request.device_type ||
+                      request.assignment_details?.device_details?.device_type ||
+                      "—"}
                   </p>
                   <p className="rh-ticket-item">
-                    {request.brand} {request.model}
+                    {(
+                      request.assignment_details?.device_details?.name ||
+                      [request.brand, request.model]
+                        .filter(Boolean)
+                        .join(" ")
+                        .trim() ||
+                      [
+                        request.assignment_details?.device_details?.brand,
+                        request.assignment_details?.device_details?.model,
+                      ]
+                        .filter(Boolean)
+                        .join(" ")
+                        .trim() ||
+                      "—"
+                    ).trim()}
                   </p>
                 </div>
               </div>
@@ -445,18 +617,33 @@ const RequestHistory = ({
                     )}
                 </div>
 
-                {request.status === "consent_pending" && (
-                  <button
-                    className="rh-consent-btn"
-                    onClick={() =>
-                      navigate(
-                        `/consent?requestId=${request.id}`
-                      )
-                    }
-                  >
-                    Fill Consent →
-                  </button>
-                )}
+                {request.status === "consent_pending" &&
+                  (isConsentSubmitted(request) ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <button className="rh-consent-btn" disabled>
+                        Awaiting Response
+                      </button>
+                      <small style={{ color: "#6b7280" }}>
+                        Submitted at{" "}
+                        {new Date(
+                          submittedConsentAtByRequestId[request.id] ||
+                            request.assignment_details?.updated_at ||
+                            request.updated_at ||
+                            request.created_at,
+                        ).toLocaleString()}
+                      </small>
+                    </div>
+                  ) : (
+                    <button
+                      className="rh-consent-btn"
+                      onClick={() => openConsentForm(request)}
+                      disabled={openingConsentRequestId === request.id}
+                    >
+                      {openingConsentRequestId === request.id
+                        ? "Opening..."
+                        : "Fill Consent →"}
+                    </button>
+                  ))}
 
                 <button
                   className="rh-delete-btn"
@@ -489,7 +676,36 @@ const RequestHistory = ({
           {deleteError}
         </div>
       )}
+
+      {consentError && (
+        <div style={{ color: "#d32f2f", marginTop: 10 }}>
+          {consentError}
+        </div>
+      )}
+
+      {consentOpen && consentAssignment && (
+        <ConsentForm
+          assignment={consentAssignment}
+          isOpen={consentOpen}
+          onClose={() => {
+            setConsentOpen(false);
+            setConsentAssignment(null);
+            setActiveConsentRequestId(null);
+          }}
+          onSubmit={handleSubmitConsent}
+          isLoading={submittingConsent}
+        />
+      )}
     </div>
+
+    <PopupModal
+      open={popup.open}
+      title={popup.title}
+      message={popup.message}
+      type={popup.type}
+      onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
+    />
+    </>
   );
 };
 

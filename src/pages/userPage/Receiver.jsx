@@ -18,6 +18,10 @@ import ReportIssue from "../../components/user/reportIssue/ReportIssue";
 import RaiseRepairTicket from "../../components/user/raiseRepairTicket/RaiseRepairTicket";
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
 import PopupModal from "../../components/common/PopupModal";
+import {
+  IndeterminateLoadBar,
+  ContentLoadingOverlay,
+} from "../../components/common/ContentLoading";
 import { inventoryAPI, authAPI } from "../../services/api";
 import { mockDevices, mockAssignments } from "../../assets/data/mockData";
 import "./Receiver.css";
@@ -26,7 +30,6 @@ function Receiver() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Derive activeTab from the flat URL path e.g. /devices → "devices"
   const rawActiveTab = location.pathname.replace("/", "") || "devices";
   const activeTab = rawActiveTab === "reportissue" ? "devices" : rawActiveTab;
 
@@ -38,6 +41,7 @@ function Receiver() {
   const [deviceRequestsError, setDeviceRequestsError] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [popup, setPopup] = useState({
     open: false,
@@ -46,158 +50,114 @@ function Receiver() {
     type: "info",
   });
 
-  // Fetch data from backend - optimized polling with longer intervals
-  useEffect(() => {
-    fetchData();
-    fetchDeviceRequests();
-    // Use longer intervals for better performance: 30 seconds for general data
-    const mainInterval = setInterval(fetchData, 30000);
-    // Faster polling for critical updates like new tickets (15 seconds)
-    const ticketInterval = setInterval(checkForNewTickets, 15000);
-    // Poll request approvals more frequently so users see status changes quickly
-    const approvalInterval = setInterval(() => {
-      fetchDeviceRequests({ silent: true, notifyOnChange: true });
-    }, 10000);
-    
-    return () => {
-      clearInterval(mainInterval);
-      clearInterval(ticketInterval);
-      clearInterval(approvalInterval);
-    };
-  }, []);
-
   const previousTicketsLengthRef = useRef(0);
   const previousRequestStatusesRef = useRef(new Map());
   const initializedRequestStatusesRef = useRef(false);
 
-  // Optimized: Check only for new tickets (lightweight polling)
-  const checkForNewTickets = async () => {
-    try {
-      const ticketsResponse = await inventoryAPI.getTickets();
-      const fetchedTickets = Array.isArray(ticketsResponse.data)
-        ? ticketsResponse.data
-        : ticketsResponse.data.results || [];
-      
-      setTickets(fetchedTickets);
+  const maybeNotifyRequestStatusChanges = (fetchedRequests) => {
+    if (!initializedRequestStatusesRef.current) return;
 
-      // Notify if new ticket received
-      if (fetchedTickets.length > previousTicketsLengthRef.current) {
-        const newCount = fetchedTickets.length - previousTicketsLengthRef.current;
-        setPopup({
-          open: true,
-          title: "Ticket Update",
-          message: `You have ${newCount} new ticket update(s)!`,
-          type: "info",
-        });
-      }
-      previousTicketsLengthRef.current = fetchedTickets.length;
-    } catch (err) {
-      console.error("Error checking for new tickets:", err);
-    }
-  };
+    const previousStatuses = previousRequestStatusesRef.current;
+    const changedRequests = fetchedRequests.filter((request) => {
+      const previousStatus = previousStatuses.get(request.id);
+      const shouldNotifyStatuses = ["approved", "rejected", "consent_pending"];
+      const isNewRequest = !previousStatuses.has(request.id);
+      const statusChanged =
+        previousStatus && previousStatus !== request.status;
 
-  const fetchDeviceRequests = async ({
-    silent = false,
-    notifyOnChange = false,
-  } = {}) => {
-    try {
-      if (!silent) {
-        setDeviceRequestsLoading(true);
-        setDeviceRequestsError(null);
-      }
-
-      const requestsResponse = await inventoryAPI.getMyDeviceRequests();
-      const fetchedRequests = Array.isArray(requestsResponse.data)
-        ? requestsResponse.data
-        : requestsResponse.data.results || [];
-
-      if (notifyOnChange && initializedRequestStatusesRef.current) {
-        const previousStatuses = previousRequestStatusesRef.current;
-        const changedRequests = fetchedRequests.filter((request) => {
-          const previousStatus = previousStatuses.get(request.id);
-          return (
-            previousStatus &&
-            previousStatus !== request.status &&
-            ["approved", "rejected"].includes(request.status)
-          );
-        });
-
-        if (changedRequests.length) {
-          const latestChange = changedRequests[0];
-          const isApproved = latestChange.status === "approved";
-          const deviceLabel = [latestChange.brand, latestChange.model]
-            .filter(Boolean)
-            .join(" ")
-            .trim() || latestChange.device_type || "device request";
-
-          setPopup({
-            open: true,
-            title: isApproved ? "Request Approved" : "Request Rejected",
-            message:
-              changedRequests.length === 1
-                ? `Your ${deviceLabel} request was ${latestChange.status}.`
-                : `${changedRequests.length} request updates were received. Open Request History to review them.`,
-            type: isApproved ? "success" : "error",
-            actions: [
-              {
-                label: "View Request History",
-                onClick: () => {
-                  navigate("/requesthistory");
-                  setPopup((prev) => ({ ...prev, open: false }));
-                },
-              },
-            ],
-          });
-        }
-      }
-
-      setDeviceRequests(fetchedRequests);
-      previousRequestStatusesRef.current = new Map(
-        fetchedRequests.map((request) => [request.id, request.status]),
+      return (
+        shouldNotifyStatuses.includes(request.status) &&
+        (statusChanged || isNewRequest)
       );
-      initializedRequestStatusesRef.current = true;
-    } catch (err) {
-      console.error("Error fetching device request updates:", err);
-      if (!silent) {
-        setDeviceRequestsError(
-          err.message || "Failed to load device request updates",
-        );
-      }
-    } finally {
-      if (!silent) {
-        setDeviceRequestsLoading(false);
-      }
-    }
+    });
+
+    if (!changedRequests.length) return;
+
+    const latestChange = changedRequests[0];
+    const isApproved = latestChange.status === "approved";
+    const isConsentPending = latestChange.status === "consent_pending";
+    const deviceLabel =
+      [latestChange.brand, latestChange.model]
+        .filter(Boolean)
+        .join(" ")
+        .trim() ||
+      latestChange.device_type ||
+      "device request";
+
+    setPopup({
+      open: true,
+      title: isConsentPending
+        ? "Consent Required"
+        : isApproved
+          ? "Request Approved"
+          : "Request Rejected",
+      message:
+        changedRequests.length === 1
+          ? isConsentPending
+            ? `Your ${deviceLabel} has been granted. Please fill the consent form for further details.`
+            : `Your ${deviceLabel} request was ${latestChange.status}.`
+          : `${changedRequests.length} request updates were received. Open Request History to review them.`,
+      type: isConsentPending ? "info" : isApproved ? "success" : "error",
+      actions: [
+        {
+          label: isConsentPending ? "Fill Consent Form" : "View Request History",
+          onClick: () => {
+            navigate("/requesthistory");
+            setPopup((prev) => ({ ...prev, open: false }));
+          },
+        },
+      ],
+    });
   };
 
-  const fetchData = async () => {
-    try {
-      // Fetch current user
-      const userResponse = await authAPI.getCurrentUser();
-      setCurrentUser(userResponse.data);
+  const loadDashboard = async ({
+    background = false,
+    notifyRequestChanges = false,
+  } = {}) => {
+    if (background) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+      setDeviceRequestsLoading(true);
+      setDeviceRequestsError(null);
+      setError(null);
+    }
 
-      // Fetch devices
-      const devicesResponse = await inventoryAPI.getDevices();
+    try {
+      const [
+        userResponse,
+        devicesResponse,
+        assignmentsResponse,
+        ticketsResponse,
+        requestsResponse,
+      ] = await Promise.all([
+        authAPI.getCurrentUser(),
+        inventoryAPI.getDevices(),
+        inventoryAPI.getAssignments(),
+        inventoryAPI.getTickets(),
+        inventoryAPI.getMyDeviceRequests(),
+      ]);
+
+      const userData = userResponse.data;
+      setCurrentUser(userData);
+
       let fetchedDevices = Array.isArray(devicesResponse.data)
         ? devicesResponse.data
         : devicesResponse.data.results || [];
       if (!fetchedDevices.length) fetchedDevices = mockDevices;
       setDevices(fetchedDevices);
 
-      // Fetch assignments
-      const assignmentsResponse = await inventoryAPI.getAssignments();
       let fetchedAssigns = Array.isArray(assignmentsResponse.data)
         ? assignmentsResponse.data
         : assignmentsResponse.data.results || [];
       if (!fetchedAssigns.length) {
-        // try to use currentUser
-        if (currentUser && currentUser.id) {
-          fetchedAssigns = mockAssignments.filter(
-            (a) => String(a.employee_id) === String(currentUser.id),
-          ).map((a) => ({
-            ...a,
-            device: mockDevices.find((d) => d.id === a.device_id) || null,
-          }));
+        if (userData?.id) {
+          fetchedAssigns = mockAssignments
+            .filter((a) => String(a.employee_id) === String(userData.id))
+            .map((a) => ({
+              ...a,
+              device: mockDevices.find((d) => d.id === a.device_id) || null,
+            }));
         }
         if (!fetchedAssigns.length) {
           fetchedAssigns = mockAssignments.map((a) => ({
@@ -208,48 +168,71 @@ function Receiver() {
       }
       setAssignments(fetchedAssigns);
 
-      // Fetch tickets (will also be fetched by checkForNewTickets)
-      const ticketsResponse = await inventoryAPI.getTickets();
       const fetchedTickets = Array.isArray(ticketsResponse.data)
         ? ticketsResponse.data
         : ticketsResponse.data.results || [];
       setTickets(fetchedTickets);
+
+      if (
+        background &&
+        fetchedTickets.length > previousTicketsLengthRef.current
+      ) {
+        const newCount =
+          fetchedTickets.length - previousTicketsLengthRef.current;
+        setPopup({
+          open: true,
+          title: "Ticket Update",
+          message: `You have ${newCount} new ticket update(s)!`,
+          type: "info",
+        });
+      }
       previousTicketsLengthRef.current = fetchedTickets.length;
 
-      setLoading(false);
+      const fetchedRequests = Array.isArray(requestsResponse.data)
+        ? requestsResponse.data
+        : requestsResponse.data.results || [];
+
+      if (notifyRequestChanges) {
+        maybeNotifyRequestStatusChanges(fetchedRequests);
+      }
+
+      setDeviceRequests(fetchedRequests);
+      previousRequestStatusesRef.current = new Map(
+        fetchedRequests.map((request) => [request.id, request.status]),
+      );
+      initializedRequestStatusesRef.current = true;
+
       setError(null);
     } catch (err) {
-      setError(err.message || "Failed to fetch data");
       console.error("Error fetching data:", err);
+      const msg = err.message || "Failed to fetch data";
+      setError(msg);
+      if (!background) {
+        setDeviceRequestsError(msg);
+      }
+    } finally {
       setLoading(false);
+      setDeviceRequestsLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const stats = useMemo(() => {
-    const totalDevices = devices.length;
-    const assignedDevices = devices.filter(
-      (d) => d.status === "assigned",
-    ).length;
-    const availableDevices = devices.filter(
-      (d) => d.status === "available",
-    ).length;
-    const maintenanceDevices = devices.filter(
-      (d) => d.status === "maintenance",
-    ).length;
-    const totalPhones = devices.filter((d) => d.device_type === "phone").length;
-    const totalLaptops = devices.filter(
-      (d) => d.device_type === "laptop",
-    ).length;
+  useEffect(() => {
+    loadDashboard({ background: false, notifyRequestChanges: true });
+    const mainInterval = setInterval(
+      () => loadDashboard({ background: true }),
+      30000,
+    );
+    const approvalInterval = setInterval(
+      () => loadDashboard({ background: true, notifyRequestChanges: true }),
+      10000,
+    );
 
-    return {
-      totalDevices,
-      assignedDevices,
-      availableDevices,
-      maintenanceDevices,
-      totalPhones,
-      totalLaptops,
+    return () => {
+      clearInterval(mainInterval);
+      clearInterval(approvalInterval);
     };
-  }, [devices]);
+  }, []);
 
   const getEmployeeForDevice = (deviceId) => {
     const assignment = assignments.find(
@@ -257,29 +240,6 @@ function Receiver() {
     );
     return assignment ? assignment.employee : undefined;
   };
-
-  if (loading) {
-    return (
-      <div className="receiver-main-container">
-        <Navbar />
-        <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
-          Loading...
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="receiver-main-container">
-        <Navbar />
-        <div style={{ textAlign: "center", padding: "40px", color: "#d32f2f" }}>
-          Error: {error}
-        </div>
-      </div>
-    );
-  }
-
 
   const tabs = [
     { id: "devices", label: "Devices", icon: Package },
@@ -292,10 +252,10 @@ function Receiver() {
 
   return (
     <div className="receiver-main-container">
+      <IndeterminateLoadBar show={refreshing && !loading} />
       <AnimatedBackground />
       <Navbar />
 
-      {/* Tabs */}
       <div className="receiver-tabs-container">
         <div className="receiver-tabs-card">
           {tabs.map((tab) => {
@@ -316,14 +276,43 @@ function Receiver() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="receiver-content">
+        <ContentLoadingOverlay
+          show={loading}
+          message="Loading your workspace…"
+        />
+        {error && !loading && (
+          <div
+            style={{
+              padding: "12px 16px",
+              marginBottom: 16,
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: 8,
+              color: "#b91c1c",
+            }}
+          >
+            {error}
+            <button
+              type="button"
+              onClick={() => loadDashboard({ background: false })}
+              style={{
+                marginLeft: 12,
+                padding: "4px 10px",
+                cursor: "pointer",
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {activeTab === "devices" && (
           <UserDevicesView
             devices={devices}
             userEmail={currentUser?.email}
             getEmployeeForDevice={getEmployeeForDevice}
-            onTicketCreated={fetchData}
+            onTicketCreated={() => loadDashboard({ background: true })}
           />
         )}
 
@@ -338,16 +327,31 @@ function Receiver() {
             requests={deviceRequests}
             loading={deviceRequestsLoading}
             error={deviceRequestsError}
+            onRequestDevice={() => {
+              navigate("/devices");
+              setPopup({
+                open: true,
+                title: "Request a Device",
+                message:
+                  "Select an available device from the Devices tab and click “Request Device”.",
+                type: "info",
+              });
+            }}
+            onDelete={() => loadDashboard({ background: true })}
           />
         )}
 
         {activeTab === "overdue" && <OverDueItems />}
 
-        {activeTab === "raiserepairticket" && <RaiseRepairTicket onTicketCreated={fetchData} />}
+        {activeTab === "raiserepairticket" && (
+          <RaiseRepairTicket
+            onTicketCreated={() => loadDashboard({ background: true })}
+          />
+        )}
       </div>
 
       <ReportIssue
-        onTicketCreated={fetchData}
+        onTicketCreated={() => loadDashboard({ background: true })}
         forceOpen={rawActiveTab === "reportissue"}
       />
 
@@ -360,7 +364,6 @@ function Receiver() {
         onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
       />
 
-      {/* Required by React Router for nested routes */}
       <Outlet />
     </div>
   );

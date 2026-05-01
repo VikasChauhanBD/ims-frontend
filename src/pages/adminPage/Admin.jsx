@@ -15,6 +15,10 @@ import AssignmentsView from "../../components/admin/assignments/AssignmentsView"
 import TicketRequestsView from "../../components/admin/ticketRequestsView/TicketRequestsView";
 import DeviceRequestsView from "../../components/admin/deviceRequestsView/DeviceRequestsView";
 import PopupModal from "../../components/common/PopupModal";
+import {
+  IndeterminateLoadBar,
+  ContentLoadingOverlay,
+} from "../../components/common/ContentLoading";
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
 import { inventoryAPI, employeeAPI } from "../../services/api";
 import { mockEmployees, mockDevices, mockAssignments } from "../../assets/data/mockData";
@@ -33,6 +37,7 @@ function Admin() {
   const [tickets, setTickets] = useState([]);
   const [deviceRequests, setDeviceRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [popup, setPopup] = useState({
     open: false,
@@ -44,64 +49,54 @@ function Admin() {
 
   // Fetch data from backend - optimized polling with longer intervals
   useEffect(() => {
-    fetchData();
-    // Use longer intervals for better performance: 30 seconds for general data
-    const mainInterval = setInterval(fetchData, 30000);
-    // Faster polling for critical updates like new tickets (15 seconds)
-    const ticketInterval = setInterval(checkForNewTickets, 15000);
-    // Poll pending device requests more frequently so admins notice new items quickly
-    const requestInterval = setInterval(checkForNewDeviceRequests, 10000);
-    
+    fetchData({ background: false });
+    const mainInterval = setInterval(() => fetchData({ background: true }), 30000);
+    const requestInterval = setInterval(checkForNewDeviceRequests, 3000);
+
     return () => {
       clearInterval(mainInterval);
-      clearInterval(ticketInterval);
       clearInterval(requestInterval);
     };
   }, []);
 
   const previousTicketsLengthRef = useRef(0);
   const previousPendingDeviceRequestIdsRef = useRef(new Set());
+  const previousConsentSubmittedRef = useRef(new Map());
   const initializedPendingDeviceRequestsRef = useRef(false);
-
-  // Optimized: Check only for new tickets (lightweight polling)
-  const checkForNewTickets = async () => {
-    try {
-      const ticketsResponse = await inventoryAPI.getTickets();
-      const fetchedTickets = Array.isArray(ticketsResponse.data)
-        ? ticketsResponse.data
-        : ticketsResponse.data.results || [];
-      
-      setTickets(fetchedTickets);
-
-      // Notify if new ticket received
-      if (fetchedTickets.length > previousTicketsLengthRef.current) {
-        setPopup({
-          open: true,
-          title: "New Ticket Received",
-          message: `New ticket request received! Total: ${fetchedTickets.length}`,
-          type: "info",
-        });
-      }
-      previousTicketsLengthRef.current = fetchedTickets.length;
-    } catch (err) {
-      console.error("Error checking for new tickets:", err);
-    }
-  };
 
   const checkForNewDeviceRequests = async () => {
     try {
-      const requestsResponse = await inventoryAPI.getDeviceRequests({ status: "pending" });
-      const pendingRequests = Array.isArray(requestsResponse.data)
+      const requestsResponse = await inventoryAPI.getDeviceRequests();
+      const allRequests = Array.isArray(requestsResponse.data)
         ? requestsResponse.data
         : requestsResponse.data.results || [];
+      const pendingRequests = allRequests.filter(
+        (request) => request.status === "pending",
+      );
 
       const nextPendingIds = new Set(pendingRequests.map((request) => request.id));
+      const nextConsentMap = new Map(
+        allRequests.map((request) => [
+          request.id,
+          Boolean(
+            request.assignment_details?.consent_form_data &&
+              Object.keys(request.assignment_details.consent_form_data || {})
+                .length,
+          ),
+        ]),
+      );
 
       if (initializedPendingDeviceRequestsRef.current) {
         const previousPendingIds = previousPendingDeviceRequestIdsRef.current;
+        const previousConsentMap = previousConsentSubmittedRef.current;
         const newPendingRequests = pendingRequests.filter(
           (request) => !previousPendingIds.has(request.id),
         );
+        const newlySubmittedConsents = allRequests.filter((request) => {
+          const hadConsent = previousConsentMap.get(request.id) || false;
+          const hasConsentNow = nextConsentMap.get(request.id) || false;
+          return !hadConsent && hasConsentNow && request.status === "consent_pending";
+        });
 
         if (newPendingRequests.length) {
           setPopup({
@@ -123,58 +118,98 @@ function Admin() {
             ],
           });
         }
+
+        if (newlySubmittedConsents.length) {
+          setPopup({
+            open: true,
+            title: "Consent Form Submitted",
+            message:
+              newlySubmittedConsents.length === 1
+                ? "A consent form was submitted. Please check Device Requests & Undertakings."
+                : `${newlySubmittedConsents.length} consent forms were submitted. Please review them.`,
+            type: "info",
+            actions: [
+              {
+                label: "Open Device Requests",
+                onClick: () => {
+                  navigate("/admin/devicerequests");
+                  setPopup((prev) => ({ ...prev, open: false }));
+                },
+              },
+            ],
+          });
+        }
       }
 
-      setDeviceRequests((previousRequests) => {
-        const previousById = new Map(previousRequests.map((request) => [request.id, request]));
-        const mergedRequests = pendingRequests.map((request) => previousById.get(request.id) || request);
-        const resolvedRequests = previousRequests.filter((request) => !nextPendingIds.has(request.id));
-        return [...mergedRequests, ...resolvedRequests];
-      });
+      setDeviceRequests(allRequests);
 
       previousPendingDeviceRequestIdsRef.current = nextPendingIds;
+      previousConsentSubmittedRef.current = nextConsentMap;
       initializedPendingDeviceRequestsRef.current = true;
     } catch (err) {
       console.error("Error checking for new device requests:", err);
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = async ({ background = false } = {}) => {
+    if (background) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
+
     try {
-      // Fetch devices
-      const devicesResponse = await inventoryAPI.getDevices();
+      const [
+        devicesResponse,
+        employeesResponse,
+        assignmentsResponse,
+        ticketsResponse,
+        deviceRequestsResponse,
+      ] = await Promise.all([
+        inventoryAPI.getDevices(),
+        employeeAPI.getEmployees(),
+        inventoryAPI.getAssignments(),
+        inventoryAPI.getTickets(),
+        inventoryAPI.getDeviceRequests(),
+      ]);
+
       let fetchedDevices = Array.isArray(devicesResponse.data)
         ? devicesResponse.data
         : devicesResponse.data.results || [];
       if (!fetchedDevices.length) fetchedDevices = mockDevices;
       setDevices(fetchedDevices);
 
-      // Fetch employees
-      const employeesResponse = await employeeAPI.getEmployees();
       let fetchedEmps = Array.isArray(employeesResponse.data)
         ? employeesResponse.data
         : employeesResponse.data.results || [];
       if (!fetchedEmps.length) fetchedEmps = mockEmployees;
       setEmployees(fetchedEmps);
 
-      // Fetch assignments
-      const assignmentsResponse = await inventoryAPI.getAssignments();
       let fetchedAssigns = Array.isArray(assignmentsResponse.data)
         ? assignmentsResponse.data
         : assignmentsResponse.data.results || [];
       if (!fetchedAssigns.length) fetchedAssigns = mockAssignments;
       setAssignments(fetchedAssigns);
 
-      // Fetch tickets (will also be fetched by checkForNewTickets)
-      const ticketsResponse = await inventoryAPI.getTickets();
       const fetchedTickets = Array.isArray(ticketsResponse.data)
         ? ticketsResponse.data
         : ticketsResponse.data.results || [];
       setTickets(fetchedTickets);
+
+      if (
+        background &&
+        fetchedTickets.length > previousTicketsLengthRef.current
+      ) {
+        setPopup({
+          open: true,
+          title: "New Ticket Received",
+          message: `New ticket request received! Total: ${fetchedTickets.length}`,
+          type: "info",
+        });
+      }
       previousTicketsLengthRef.current = fetchedTickets.length;
 
-      // Fetch device requests
-      const deviceRequestsResponse = await inventoryAPI.getDeviceRequests();
       const fetchedDeviceRequests = Array.isArray(deviceRequestsResponse.data)
         ? deviceRequestsResponse.data
         : deviceRequestsResponse.data.results || [];
@@ -184,21 +219,32 @@ function Admin() {
           .filter((request) => request.status === "pending")
           .map((request) => request.id),
       );
+      previousConsentSubmittedRef.current = new Map(
+        fetchedDeviceRequests.map((request) => [
+          request.id,
+          Boolean(
+            request.assignment_details?.consent_form_data &&
+              Object.keys(request.assignment_details.consent_form_data || {})
+                .length,
+          ),
+        ]),
+      );
       initializedPendingDeviceRequestsRef.current = true;
 
-      setLoading(false);
       setError(null);
     } catch (err) {
       setError(err.message || "Failed to fetch data");
       console.error("Error fetching admin data:", err);
+    } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   const handleAddDevice = async (device) => {
     try {
       await inventoryAPI.createDevice(device);
-      fetchData();
+      fetchData({ background: true });
     } catch (err) {
       console.error("Failed to create device:", err);
       setPopup({
@@ -269,28 +315,6 @@ function Admin() {
     [deviceRequests],
   );
 
-  if (loading) {
-    return (
-      <div className="admin-main-container">
-        <Navbar />
-        <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
-          Loading admin dashboard...
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="admin-main-container">
-        <Navbar />
-        <div style={{ textAlign: "center", padding: "40px", color: "#d32f2f" }}>
-          Error: {error}
-        </div>
-      </div>
-    );
-  }
-
   const tabs = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "devices", label: "Devices", icon: Package },
@@ -302,6 +326,7 @@ function Admin() {
 
   return (
     <div className="admin-main-container">
+      <IndeterminateLoadBar show={refreshing && !loading} />
       <AnimatedBackground />
       <Navbar />
 
@@ -331,6 +356,35 @@ function Admin() {
 
       {/* Main Content */}
       <div className="admin-content">
+        <ContentLoadingOverlay
+          show={loading}
+          message="Loading admin dashboard…"
+        />
+        {error && !loading && (
+          <div
+            style={{
+              padding: "12px 16px",
+              marginBottom: 16,
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              borderRadius: 8,
+              color: "#b91c1c",
+            }}
+          >
+            {error}
+            <button
+              type="button"
+              onClick={() => fetchData({ background: false })}
+              style={{
+                marginLeft: 12,
+                padding: "4px 10px",
+                cursor: "pointer",
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
         {activeTab === "dashboard" && <Dashboard stats={stats} />}
 
         {activeTab === "devices" && (
@@ -338,7 +392,7 @@ function Admin() {
             devices={devices}
             employees={employees}
             getEmployeeForDevice={getEmployeeForDevice}
-            onRefresh={fetchData}
+            onRefresh={() => fetchData({ background: true })}
             onAddDevice={handleAddDevice}
           />
         )}
@@ -346,7 +400,7 @@ function Admin() {
         {activeTab === "employees" && (
           <EmployeesView
             employees={employees}
-            onRefresh={fetchData}
+            onRefresh={() => fetchData({ background: true })}
           />
         )}
 
@@ -360,7 +414,7 @@ function Admin() {
             setTickets={setTickets}
             devices={devices}
             employees={employees}
-            onRefresh={fetchData}
+            onRefresh={() => fetchData({ background: true })}
           />
         )}
 
@@ -370,7 +424,7 @@ function Admin() {
             setRequests={setDeviceRequests}
             devices={devices}
             employees={employees}
-            onRefresh={fetchData}
+            onRefresh={() => fetchData({ background: true })}
           />
         )}
       </div>
