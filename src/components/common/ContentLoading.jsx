@@ -1,5 +1,6 @@
 import React from "react";
 import "./ContentLoading.css";
+import { DashboardShellSkeleton } from "./SkeletonView";
 
 export function IndeterminateLoadBar({ show }) {
   if (!show) return null;
@@ -13,7 +14,11 @@ export function IndeterminateLoadBar({ show }) {
   );
 }
 
-export function ContentLoadingOverlay({ show, message = "Loading…" }) {
+export function ContentLoadingOverlay({
+  show,
+  message = "Loading…",
+  variant = "default",
+}) {
   if (!show) return null;
   return (
     <div
@@ -21,8 +26,7 @@ export function ContentLoadingOverlay({ show, message = "Loading…" }) {
       aria-busy="true"
       aria-live="polite"
     >
-      <div className="content-loading-spinner" />
-      <p className="content-loading-message">{message}</p>
+      <DashboardShellSkeleton variant={variant} message={message} />
     </div>
   );
 }

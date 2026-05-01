@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.getCurrentUser();
       setUser(response.data);
       setIsAuthenticated(true);
-    } catch (error) {
+    } catch {
       // Token is invalid, clear storage
       localStorage.clear();
       setIsAuthenticated(false);
@@ -57,6 +57,19 @@ export const AuthProvider = ({ children }) => {
       setUser(employee);
       setIsAuthenticated(true);
 
+      const welcomeKey = `ims_welcome_seen_${employee.id}`;
+      const isFirstLoginOnDevice = !localStorage.getItem(welcomeKey);
+      sessionStorage.setItem(
+        "ims_pending_welcome",
+        JSON.stringify({
+          id: employee.id,
+          full_name: employee.full_name,
+          role: employee.role,
+          first_login: isFirstLoginOnDevice,
+        }),
+      );
+      localStorage.setItem(welcomeKey, "1");
+
       return { success: true, data: employee };
     } catch (error) {
       const errors = handleAPIError(error);
@@ -76,6 +89,19 @@ export const AuthProvider = ({ children }) => {
       // Set user state
       setUser(employee);
       setIsAuthenticated(true);
+
+      const welcomeKey = `ims_welcome_seen_${employee.id}`;
+      const isFirstLoginOnDevice = !localStorage.getItem(welcomeKey);
+      sessionStorage.setItem(
+        "ims_pending_welcome",
+        JSON.stringify({
+          id: employee.id,
+          full_name: employee.full_name,
+          role: employee.role,
+          first_login: isFirstLoginOnDevice,
+        }),
+      );
+      localStorage.setItem(welcomeKey, "1");
 
       return { success: true, data: employee };
     } catch (error) {

@@ -82,3 +82,25 @@
     transform: translateY(0);
   }
 }
+
+@media (max-width: 520px) {
+  .popup-modal-card {
+    width: calc(100% - 20px);
+    border-radius: 16px;
+  }
+
+  .popup-modal-header,
+  .popup-modal-body,
+  .popup-modal-actions {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .popup-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .popup-modal-button {
+    width: 100%;
+  }
+}

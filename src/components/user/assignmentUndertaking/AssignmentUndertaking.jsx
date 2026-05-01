@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import ConsentForm from "../../common/ConsentForm";
-import LoadingSpinner from "../../common/LoadingSpinner";
+import { SectionSkeleton } from "../../common/SkeletonView";
 import { inventoryAPI } from "../../../services/api";
 import "./AssignmentUndertaking.css";
 
@@ -73,7 +73,7 @@ export default function AssignmentUndertaking() {
   if (loading) {
     return (
       <div className="undertaking-container">
-        <LoadingSpinner fullScreen={false} message="Loading pending assignments..." />
+        <SectionSkeleton lines={3} cards={2} />
       </div>
     );
   }

@@ -22,13 +22,15 @@ import {
   IndeterminateLoadBar,
   ContentLoadingOverlay,
 } from "../../components/common/ContentLoading";
-import { inventoryAPI, authAPI } from "../../services/api";
+import { inventoryAPI } from "../../services/api";
 import { mockDevices, mockAssignments } from "../../assets/data/mockData";
+import { useAuth } from "../../AuthContext/AuthContext";
 import "./Receiver.css";
 
 function Receiver() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   const rawActiveTab = location.pathname.replace("/", "") || "devices";
   const activeTab = rawActiveTab === "reportissue" ? "devices" : rawActiveTab;
@@ -114,6 +116,8 @@ function Receiver() {
     background = false,
     notifyRequestChanges = false,
   } = {}) => {
+    if (background && document.visibilityState === "hidden") return;
+
     if (background) {
       setRefreshing(true);
     } else {
@@ -125,20 +129,18 @@ function Receiver() {
 
     try {
       const [
-        userResponse,
         devicesResponse,
         assignmentsResponse,
         ticketsResponse,
         requestsResponse,
       ] = await Promise.all([
-        authAPI.getCurrentUser(),
         inventoryAPI.getDevices(),
         inventoryAPI.getAssignments(),
         inventoryAPI.getMyTickets(),
         inventoryAPI.getMyDeviceRequests(),
       ]);
 
-      const userData = userResponse.data;
+      const userData = user || null;
       setCurrentUser(userData);
 
       let fetchedDevices = Array.isArray(devicesResponse.data)
@@ -221,18 +223,41 @@ function Receiver() {
     loadDashboard({ background: false, notifyRequestChanges: true });
     const mainInterval = setInterval(
       () => loadDashboard({ background: true }),
-      30000,
+      45000,
     );
     const approvalInterval = setInterval(
       () => loadDashboard({ background: true, notifyRequestChanges: true }),
-      10000,
+      15000,
     );
 
     return () => {
       clearInterval(mainInterval);
       clearInterval(approvalInterval);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem("ims_pending_welcome");
+    if (!raw || !user?.id) return;
+
+    try {
+      const payload = JSON.parse(raw);
+      if (String(payload.id) !== String(user.id)) return;
+
+      setPopup({
+        open: true,
+        title: payload.first_login ? "Welcome to IMS" : "Welcome Back",
+        message: payload.first_login
+          ? `Hi ${payload.full_name || "there"}, your workspace is ready. You can explore devices, tickets, and requests from the tabs above.`
+          : `Hi ${payload.full_name || "there"}, you're signed in successfully.`,
+        type: "success",
+      });
+      sessionStorage.removeItem("ims_pending_welcome");
+    } catch {
+      sessionStorage.removeItem("ims_pending_welcome");
+    }
+  }, [user]);
 
   const getEmployeeForDevice = (deviceId) => {
     const assignment = assignments.find(
@@ -280,6 +305,7 @@ function Receiver() {
         <ContentLoadingOverlay
           show={loading}
           message="Loading your workspace…"
+          variant="dashboard"
         />
         {error && !loading && (
           <div
@@ -337,7 +363,7 @@ function Receiver() {
                 type: "info",
               });
             }}
-            onDelete={() => loadDashboard({ background: true })}
+            onRefresh={() => loadDashboard({ background: true })}
           />
         )}
 

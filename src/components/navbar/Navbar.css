@@ -2,18 +2,20 @@
   background-color: #ffffff;
   border-bottom: 1px solid #e5e7eb;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .navbar-container {
-  width: 70%;
+  width: min(1120px, calc(100% - 24px));
   margin: 0 auto;
   padding: 0 16px;
-
-  /* FIX: Proper alignment */
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 64px;
+  gap: 16px;
 }
 
 .navbar-logo {
@@ -61,14 +63,23 @@
   display: flex;
   align-items: center;
   gap: 20px;
+  min-width: 0;
 }
 
 .user-info {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #111827; /* FIX: visible text */
+  color: #111827;
   font-size: 14px;
+  min-width: 0;
+}
+
+.user-info span:first-of-type {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
 }
 
 .user-role {
@@ -112,26 +123,65 @@
   text-decoration: underline;
 }
 
-/* ---------------- Responsive ---------------- */
-
-@media (max-width: 1440px) {
-  .navbar-container {
-    width: 80%;
-  }
-}
-
-@media (max-width: 1024px) {
-  .navbar-container {
-    width: 90%;
-  }
-}
-
 @media (max-width: 768px) {
   .navbar-container {
-    width: 95%;
+    width: min(1120px, calc(100% - 16px));
     flex-direction: column;
     height: auto;
-    padding: 10px 16px;
-    gap: 10px;
+    padding: 10px 0;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .navbar-actions {
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .logo-title {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .logo-icon {
+    padding: 7px;
+  }
+
+  .logo-package {
+    width: 20px;
+    height: 20px;
+  }
+
+  .logo-subtitle {
+    display: none;
+  }
+
+  .user-info {
+    font-size: 13px;
+  }
+
+  .user-info span:first-of-type {
+    max-width: 120px;
+  }
+
+  .logout-btn {
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .navbar-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .profile-link,
+  .logout-btn {
+    width: 100%;
+  }
+
+  .logout-btn {
+    justify-content: center;
   }
 }

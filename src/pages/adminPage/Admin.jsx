@@ -21,12 +21,14 @@ import {
 } from "../../components/common/ContentLoading";
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
 import { inventoryAPI, employeeAPI } from "../../services/api";
+import { useAuth } from "../../AuthContext/AuthContext";
 import { mockEmployees, mockDevices, mockAssignments } from "../../assets/data/mockData";
 import "./Admin.css";
 
 function Admin() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   // Derive activeTab from the current URL
   const activeTab = location.pathname.split("/admin/")[1] || "dashboard";
@@ -50,14 +52,37 @@ function Admin() {
   // Fetch data from backend - optimized polling with longer intervals
   useEffect(() => {
     fetchData({ background: false });
-    const mainInterval = setInterval(() => fetchData({ background: true }), 30000);
-    const requestInterval = setInterval(checkForNewDeviceRequests, 3000);
+    const mainInterval = setInterval(() => fetchData({ background: true }), 45000);
+    const requestInterval = setInterval(checkForNewDeviceRequests, 12000);
 
     return () => {
       clearInterval(mainInterval);
       clearInterval(requestInterval);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem("ims_pending_welcome");
+    if (!raw || !user?.id) return;
+
+    try {
+      const payload = JSON.parse(raw);
+      if (String(payload.id) !== String(user.id)) return;
+
+      setPopup({
+        open: true,
+        title: payload.first_login ? "Welcome to IMS" : "Welcome Back",
+        message: payload.first_login
+          ? `Hi ${payload.full_name || "there"}, your admin workspace is ready. You can review devices, requests, and ticket updates from the tabs above.`
+          : `Hi ${payload.full_name || "there"}, you're signed in successfully.`,
+        type: "success",
+      });
+      sessionStorage.removeItem("ims_pending_welcome");
+    } catch {
+      sessionStorage.removeItem("ims_pending_welcome");
+    }
+  }, [user]);
 
   const previousTicketsLengthRef = useRef(0);
   const previousPendingDeviceRequestIdsRef = useRef(new Set());
@@ -65,6 +90,8 @@ function Admin() {
   const initializedPendingDeviceRequestsRef = useRef(false);
 
   const checkForNewDeviceRequests = async () => {
+    if (document.visibilityState === "hidden") return;
+
     try {
       const requestsResponse = await inventoryAPI.getDeviceRequests();
       const allRequests = Array.isArray(requestsResponse.data)
@@ -152,6 +179,8 @@ function Admin() {
   };
 
   const fetchData = async ({ background = false } = {}) => {
+    if (background && document.visibilityState === "hidden") return;
+
     if (background) {
       setRefreshing(true);
     } else {
@@ -359,6 +388,7 @@ function Admin() {
         <ContentLoadingOverlay
           show={loading}
           message="Loading admin dashboard…"
+          variant="dashboard"
         />
         {error && !loading && (
           <div

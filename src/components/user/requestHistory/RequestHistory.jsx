@@ -191,16 +191,15 @@ import "./RequestHistory.css";
 import { inventoryAPI } from "../../../services/api";
 import ConsentForm from "../../common/ConsentForm";
 import PopupModal from "../../common/PopupModal";
+import { SectionSkeleton } from "../../common/SkeletonView";
 
 const RequestHistory = ({
   requests = [],
   loading = false,
   error = null,
   onRequestDevice,
-  onDelete,
+  onRefresh,
 }) => {
-  const [deletingId, setDeletingId] = useState(null);
-  const [deleteError, setDeleteError] = useState("");
   const [consentOpen, setConsentOpen] = useState(false);
   const [consentAssignment, setConsentAssignment] = useState(null);
   const [activeConsentRequestId, setActiveConsentRequestId] = useState(null);
@@ -291,8 +290,7 @@ const RequestHistory = ({
   if (loading) {
     return (
       <div className="rh-section-header">
-        <h2>Request History</h2>
-        <p>Loading device requests...</p>
+        <SectionSkeleton lines={4} cards={3} />
       </div>
     );
   }
@@ -305,20 +303,6 @@ const RequestHistory = ({
       </div>
     );
   }
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this request?")) return;
-    setDeletingId(id);
-    setDeleteError("");
-    try {
-      await inventoryAPI.deleteDeviceRequest(id);
-      if (onDelete) onDelete();
-    } catch (err) {
-      setDeleteError(err.message || "Failed to delete request");
-    } finally {
-      setDeletingId(null);
-    }
-  };
 
   const normalizeRequestObject = (maybeResponseData) => {
     // Some endpoints return { request: {...} }, others return the request object directly
@@ -430,7 +414,7 @@ const RequestHistory = ({
           "Your consent form is submitted successfully. Please wait for admin approval.",
         type: "success",
       });
-      if (onDelete) await onDelete(); // refresh list (reusing callback hook)
+      if (onRefresh) await onRefresh();
     } catch (err) {
       console.error("Error submitting consent:", err);
       setConsentError(
@@ -634,26 +618,16 @@ const RequestHistory = ({
                       </small>
                     </div>
                   ) : (
-                    <button
-                      className="rh-consent-btn"
-                      onClick={() => openConsentForm(request)}
-                      disabled={openingConsentRequestId === request.id}
-                    >
-                      {openingConsentRequestId === request.id
+                <button
+                  className="rh-consent-btn"
+                  onClick={() => openConsentForm(request)}
+                  disabled={openingConsentRequestId === request.id}
+                >
+                  {openingConsentRequestId === request.id
                         ? "Opening..."
                         : "Fill Consent →"}
                     </button>
                   ))}
-
-                <button
-                  className="rh-delete-btn"
-                  onClick={() => handleDelete(request.id)}
-                  disabled={deletingId === request.id}
-                >
-                  {deletingId === request.id
-                    ? "Deleting..."
-                    : "Delete"}
-                </button>
               </div>
             </div>
 
@@ -670,12 +644,6 @@ const RequestHistory = ({
           </div>
         ))}
       </div>
-
-      {deleteError && (
-        <div style={{ color: "#d32f2f", marginTop: 10 }}>
-          {deleteError}
-        </div>
-      )}
 
       {consentError && (
         <div style={{ color: "#d32f2f", marginTop: 10 }}>

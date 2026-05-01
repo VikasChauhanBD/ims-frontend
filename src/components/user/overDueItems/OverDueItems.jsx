@@ -8,11 +8,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { inventoryAPI } from "../../../services/api";
-import LoadingSpinner from "../../common/LoadingSpinner";
 import "./OverDueItems.css";
-
-// data will be fetched from backend
-const mockOverdueData = []; // kept for reference but not used
+import { SectionSkeleton } from "../../common/SkeletonView";
 
 const getStatus = (dueDateStr) => {
   const today = new Date();
@@ -159,7 +156,7 @@ export default function OverDueItems() {
       {/* Table */}
       {loading ? (
         <div className="od-loading">
-          <p>Loading assignments...</p>
+          <SectionSkeleton title={false} cards={3} lines={3} />
         </div>
       ) : error ? (
         <div className="od-error">

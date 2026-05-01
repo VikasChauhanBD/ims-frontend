@@ -3,10 +3,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px 12px;
 }
 
 .login-box {
-  width: 25%;
+  width: min(440px, 100%);
   background: white;
   border-radius: 1.5rem;
   box-shadow:
@@ -300,32 +301,18 @@
   color: #6d28d9;
 }
 
-/* --------------------------- Responsive adjustments ------------------------------ */
-@media (max-width: 1440px) {
-  .login-box {
-    width: 30%;
-  }
-}
-
-@media (max-width: 1024px) {
-  .login-box {
-    width: 50%;
-  }
-}
-
-@media (max-width: 868px) {
-  .login-box {
-    width: 60%;
-  }
-}
-
 @media (max-width: 568px) {
   .login-box {
-    width: 95%;
     padding: 2rem 1rem;
+    border-radius: 1.1rem;
   }
 
   .login-title {
     font-size: 1.5rem;
+  }
+
+  .form-footer {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

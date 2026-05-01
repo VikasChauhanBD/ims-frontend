@@ -1,173 +1,20 @@
-/* Full Screen Loading */
-.loading-fullscreen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(4px);
-  z-index: 9999;
-}
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
-}
-
-/* Spinner Animation */
-.spinner {
-  width: 60px;
-  height: 60px;
-  border: 5px solid #f0f0f0;
-  border-top: 5px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.spinner-inline {
-  display: inline-block;
-  width: 30px;
-  height: 30px;
-  border: 3px solid #f0f0f0;
-  border-top: 3px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-/* Loading Message */
-.loading-message {
-  font-size: 1.125rem;
-  color: #333;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-}
-
 .loading-text {
   font-size: 0.95rem;
   color: #666;
-  margin-left: 0.75rem;
   font-weight: 500;
+  text-align: center;
 }
 
-/* Inline Loading Container */
 .loading-inline {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
-  padding: 2rem 1rem;
-  gap: 0.5rem;
+  padding: 1rem 0;
+  gap: 0.75rem;
 }
 
-/* Desktop View - Larger Spinner */
-@media (min-width: 1024px) {
-  .spinner {
-    width: 80px;
-    height: 80px;
-    border: 6px solid #f0f0f0;
-    border-top: 6px solid #3b82f6;
-  }
-
-  .loading-message {
-    font-size: 1.25rem;
-  }
-
-  .loading-container {
-    gap: 2rem;
-  }
-}
-
-/* Tablet View */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .spinner {
-    width: 70px;
-    height: 70px;
-    border: 5px solid #f0f0f0;
-    border-top: 5px solid #3b82f6;
-  }
-
-  .loading-message {
-    font-size: 1.1rem;
-  }
-
-  .loading-container {
-    gap: 1.75rem;
-  }
-}
-
-/* Mobile View - Smaller Spinner */
 @media (max-width: 767px) {
-  .spinner {
-    width: 50px;
-    height: 50px;
-    border: 4px solid #f0f0f0;
-    border-top: 4px solid #3b82f6;
-  }
-
-  .loading-message {
-    font-size: 1rem;
-  }
-
-  .loading-container {
-    gap: 1.25rem;
-  }
-
   .loading-text {
     font-size: 0.875rem;
-  }
-
-  .spinner-inline {
-    width: 24px;
-    height: 24px;
-    border: 2.5px solid #f0f0f0;
-    border-top: 2.5px solid #3b82f6;
-  }
-
-  .loading-inline {
-    padding: 1.5rem 0.75rem;
-  }
-}
-
-/* Extra small mobile */
-@media (max-width: 480px) {
-  .spinner {
-    width: 45px;
-    height: 45px;
-    border: 3.5px solid #f0f0f0;
-    border-top: 3.5px solid #3b82f6;
-  }
-
-  .loading-message {
-    font-size: 0.95rem;
-  }
-
-  .loading-container {
-    gap: 1rem;
-  }
-
-  .spinner-inline {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #f0f0f0;
-    border-top: 2px solid #3b82f6;
-  }
-
-  .loading-text {
-    font-size: 0.8rem;
   }
 }
