@@ -99,20 +99,41 @@ export default function ReportIssue({
     }
   }, [setIssueReports]);
 
+
+  // Helper to fetch all device pages
+  const fetchAllDevices = async () => {
+    let allDevices = [];
+    let nextUrl = null;
+    let params = { page_size: 100 };
+    try {
+      do {
+        const res = await inventoryAPI.getDevices(nextUrl ? { ...params, page: nextUrl } : params);
+        const data = res.data;
+        if (Array.isArray(data)) {
+          allDevices = allDevices.concat(data);
+          break;
+        } else {
+          allDevices = allDevices.concat(data.results || []);
+          nextUrl = data.next ? new URL(data.next, window.location.origin).searchParams.get('page') : null;
+        }
+      } while (nextUrl);
+    } catch (err) {
+      throw err;
+    }
+    return allDevices;
+  };
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [devicesRes, ticketsRes] = await Promise.all([
-        inventoryAPI.getDevices(),
+      const [allDevices, ticketsRes] = await Promise.all([
+        fetchAllDevices(),
         inventoryAPI.getMyTickets(),
       ]);
 
-      const fetchedDevices = Array.isArray(devicesRes.data)
-        ? devicesRes.data
-        : devicesRes.data.results || [];
-      setDevices(fetchedDevices);
+      setDevices(allDevices);
 
       const allTickets = Array.isArray(ticketsRes.data)
         ? ticketsRes.data
