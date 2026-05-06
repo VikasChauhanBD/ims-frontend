@@ -124,10 +124,7 @@ export const inventoryAPI = {
   getDashboardStats: () => api.get("/inventory/dashboard/stats/"),
 
   // Devices
-  getDevices: (params) =>
-  api.get("/inventory/devices/", {
-    params: { page_size: 1000, ...params },
-  }),
+  getDevices: (params) => api.get("/inventory/devices/", { params }),
   getDevice: (id) => api.get(`/inventory/devices/${id}/`),
   createDevice: (data) => api.post("/inventory/devices/", data),
   updateDevice: (id, data) => api.patch(`/inventory/devices/${id}/`, data),
@@ -138,10 +135,7 @@ export const inventoryAPI = {
   markAvailable: (id) => api.post(`/inventory/devices/${id}/mark_available/`),
 
   // Assignments
-  getAssignments: (params) =>
-  api.get("/inventory/assignments/", {
-    params: { page_size: 1000, ...params },
-  }),
+  getAssignments: (params) => api.get("/inventory/assignments/", { params }),
   getAssignment: (id) => api.get(`/inventory/assignments/${id}/`),
   createAssignment: (data) => api.post("/inventory/assignments/", data),
   updateAssignment: (id, data) =>
@@ -187,10 +181,7 @@ export const inventoryAPI = {
 
 // Employee APIs
 export const employeeAPI = {
-  getEmployees: (params) =>
-  api.get("/auth/employees/", {
-    params: { page_size: 1000, ...params },
-  }),
+  getEmployees: (params) => api.get("/auth/employees/", { params }),
   getEmployee: (id) => api.get(`/auth/employees/${id}/`),
   createEmployee: (data) => api.post("/auth/employees/", data),
   updateEmployee: (id, data) => api.patch(`/auth/employees/${id}/`, data),
