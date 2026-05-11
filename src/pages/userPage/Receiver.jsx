@@ -6,6 +6,7 @@ import {
   Monitor,
   ClipboardList,
   AlarmClock,
+  RotateCcw,
   Wrench,
 } from "lucide-react";
 import Navbar from "../../components/navbar/Navbar";
@@ -16,6 +17,7 @@ import RequestHistory from "../../components/user/requestHistory/RequestHistory"
 import OverDueItems from "../../components/user/overDueItems/OverDueItems";
 import ReportIssue from "../../components/user/reportIssue/ReportIssue";
 import RaiseRepairTicket from "../../components/user/raiseRepairTicket/RaiseRepairTicket";
+import ReturnDevice from "../../components/user/returnDevice/ReturnDevice";
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
 import PopupModal from "../../components/common/PopupModal";
 import {
@@ -32,8 +34,9 @@ function Receiver() {
   const location = useLocation();
   const { user } = useAuth();
 
-  const rawActiveTab = location.pathname.replace("/", "") || "devices";
-  const activeTab = rawActiveTab === "reportissue" ? "devices" : rawActiveTab;
+  // const rawActiveTab = location.pathname.replace("/", "") || "devices";
+  const rawActiveTab = location.pathname.split("/")[1] || "devices";
+  const activeTab = rawActiveTab;
 
   const [devices, setDevices] = useState([]);
   const [assignments, setAssignments] = useState([]);
@@ -62,10 +65,10 @@ function Receiver() {
     const previousStatuses = previousRequestStatusesRef.current;
     const changedRequests = fetchedRequests.filter((request) => {
       const previousStatus = previousStatuses.get(request.id);
-      const shouldNotifyStatuses = ["approved", "rejected", "consent_pending"];
+      // const shouldNotifyStatuses = ["approved", "rejected", "consent_pending"];
+      const shouldNotifyStatuses = ["consent_pending", "rejected", "returned"];
       const isNewRequest = !previousStatuses.has(request.id);
-      const statusChanged =
-        previousStatus && previousStatus !== request.status;
+      const statusChanged = previousStatus && previousStatus !== request.status;
 
       return (
         shouldNotifyStatuses.includes(request.status) &&
@@ -76,33 +79,51 @@ function Receiver() {
     if (!changedRequests.length) return;
 
     const latestChange = changedRequests[0];
-    const isApproved = latestChange.status === "approved";
-    const isConsentPending = latestChange.status === "consent_pending";
+    // const isApproved = latestChange.status === "approved";
+    // const isConsentPending = latestChange.status === "consent_pending";
     const deviceLabel =
-      [latestChange.brand, latestChange.model]
-        .filter(Boolean)
-        .join(" ")
-        .trim() ||
+      latestChange.device_details?.name ||
+      `${latestChange.brand || ""} ${latestChange.model || ""}`.trim() ||
       latestChange.device_type ||
       "device request";
+
+    // setPopup({
+    //   open: true,
+    //   title: isConsentPending
+    //     ? "Consent Required"
+    //     : isApproved
+    //       ? "Request Approved"
+    //       : "Request Rejected",
+    const isConsentPending = latestChange.status === "consent_pending";
+    const isRejected = latestChange.status === "rejected";
+    const isReturned = latestChange.status === "returned";
+    const isPositiveUpdate = isConsentPending || isReturned;
 
     setPopup({
       open: true,
       title: isConsentPending
         ? "Consent Required"
-        : isApproved
-          ? "Request Approved"
-          : "Request Rejected",
+        : isReturned
+          ? "Device Returned"
+          : isRejected
+            ? "Request Rejected"
+            : "Request Update",
       message:
         changedRequests.length === 1
           ? isConsentPending
-            ? `Your ${deviceLabel} has been granted. Please fill the consent form for further details.`
-            : `Your ${deviceLabel} request was ${latestChange.status}.`
+            ? `Your ${deviceLabel} is ready. Please complete the consent form.`
+            : isReturned
+              ? `Your ${deviceLabel} return has been completed.`
+              : isRejected
+                ? `Your ${deviceLabel} request was rejected.`
+                : `Your ${deviceLabel} request status updated.`
           : `${changedRequests.length} request updates were received. Open Request History to review them.`,
-      type: isConsentPending ? "info" : isApproved ? "success" : "error",
+      type: isPositiveUpdate ? "success" : isRejected ? "error" : "info",
       actions: [
         {
-          label: isConsentPending ? "Fill Consent Form" : "View Request History",
+          label: isConsentPending
+            ? "Fill Consent Form"
+            : "View Request History",
           onClick: () => {
             navigate("/requesthistory");
             setPopup((prev) => ({ ...prev, open: false }));
@@ -219,20 +240,41 @@ function Receiver() {
     }
   };
 
+  // useEffect(() => {
+  //   loadDashboard({ background: false, notifyRequestChanges: true });
+  //   const mainInterval = setInterval(
+  //     () => loadDashboard({ background: true }),
+  //     45000,
+  //   );
+  //   const approvalInterval = setInterval(
+  //     () => loadDashboard({ background: true, notifyRequestChanges: true }),
+  //     15000,
+  //   );
+
+  //   return () => {
+  //     clearInterval(mainInterval);
+  //     clearInterval(approvalInterval);
+  //   };
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [user]);
   useEffect(() => {
     loadDashboard({ background: false, notifyRequestChanges: true });
-    const mainInterval = setInterval(
-      () => loadDashboard({ background: true }),
-      45000,
-    );
-    const approvalInterval = setInterval(
-      () => loadDashboard({ background: true, notifyRequestChanges: true }),
-      15000,
-    );
+
+    const interval = setInterval(() => {
+      loadDashboard({ background: true, notifyRequestChanges: true });
+    }, 60000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        loadDashboard({ background: true, notifyRequestChanges: true });
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      clearInterval(mainInterval);
-      clearInterval(approvalInterval);
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -259,17 +301,33 @@ function Receiver() {
     }
   }, [user]);
 
+  // const getEmployeeForDevice = (deviceId) => {
+  //   const assignment = assignments.find(
+  //     (a) => a.device?.id === deviceId && a.status === "active",
+  //   );
+  //   return assignment ? assignment.employee : undefined;
+  // };
   const getEmployeeForDevice = (deviceId) => {
     const assignment = assignments.find(
-      (a) => a.device?.id === deviceId && a.status === "active",
+      (a) =>
+        (a.device?.id === deviceId || a.device_id === deviceId) &&
+        a.status === "active",
     );
-    return assignment ? assignment.employee : undefined;
+
+    return assignment
+      ? assignment.employee ||
+          assignment.employee_details || {
+            full_name: assignment.employee_name,
+            email: assignment.employee_email,
+          }
+      : undefined;
   };
 
   const tabs = [
     { id: "devices", label: "Devices", icon: Package },
     { id: "tickets", label: "My Tickets", icon: TicketCheck },
     { id: "mydevices", label: "My Devices", icon: Monitor },
+    { id: "returndevice", label: "Return Device", icon: RotateCcw },
     { id: "requesthistory", label: "Request History", icon: ClipboardList },
     { id: "overdue", label: "Return Due", icon: AlarmClock },
     { id: "raiserepairticket", label: "Repair Ticket", icon: Wrench },
@@ -288,7 +346,8 @@ function Receiver() {
             return (
               <button
                 key={tab.id}
-                onClick={() => navigate(`/${tab.id}`)}
+                // onClick={() => navigate(`/${tab.id}`)}
+                onClick={() => navigate(tab.id)}
                 className={`receiver-tab-button ${
                   activeTab === tab.id ? "active-tab" : "inactive-tab"
                 }`}
@@ -347,6 +406,14 @@ function Receiver() {
         )}
 
         {activeTab === "mydevices" && <MyDevices />}
+
+        {activeTab === "returndevice" && (
+          <ReturnDevice
+            onReturned={() =>
+              loadDashboard({ background: true, notifyRequestChanges: true })
+            }
+          />
+        )}
 
         {activeTab === "requesthistory" && (
           <RequestHistory

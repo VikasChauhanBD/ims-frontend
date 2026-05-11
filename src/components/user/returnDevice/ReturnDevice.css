@@ -1,0 +1,155 @@
+.return-device-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: 2rem;
+}
+
+.return-device-header h2 {
+  margin: 0;
+  font-family: "Clash Display", sans-serif;
+  font-size: 1.75rem;
+  color: #111827;
+}
+
+.return-device-header p {
+  margin: 0.35rem 0 0;
+  color: #6b7280;
+}
+
+.return-device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.return-device-card,
+.return-device-empty {
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 18px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.return-device-card {
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.return-device-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.return-device-type,
+.return-device-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.return-device-type {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.return-device-status {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.return-device-card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #111827;
+}
+
+.return-device-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+.return-device-meta div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.return-device-remarks {
+  min-height: 92px;
+  border-radius: 12px;
+  border: 1px solid #dbeafe;
+  padding: 0.8rem 0.9rem;
+  resize: vertical;
+  font: inherit;
+  outline: none;
+}
+
+.return-device-remarks:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.return-device-btn {
+  border: none;
+  border-radius: 12px;
+  background: #111827;
+  color: #ffffff;
+  padding: 0.85rem 1rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+}
+
+.return-device-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #1f2937;
+}
+
+.return-device-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.return-device-empty {
+  padding: 2.25rem 1.5rem;
+  text-align: center;
+}
+
+.return-device-empty-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: #60a5fa;
+  margin-bottom: 0.8rem;
+}
+
+.return-device-empty h3 {
+  margin: 0 0 0.35rem;
+  color: #111827;
+}
+
+.return-device-empty p {
+  margin: 0;
+  color: #6b7280;
+}
+
+@media (max-width: 640px) {
+  .return-device-grid {
+    grid-template-columns: 1fr;
+  }
+}

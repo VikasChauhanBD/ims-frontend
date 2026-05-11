@@ -13,18 +13,36 @@ import LoadingSpinner from "./components/common/LoadingSpinner";
 import "./App.css";
 
 // Protected Route
+// function ProtectedRoute({ children, adminOnly = false }) {
+//   const { isAuthenticated, loading, user } = useAuth();
+//   if (loading) return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
+//   if (!isAuthenticated) {
+//     return <Navigate to={adminOnly ? "/admin-login" : "/login"} />;
+//   }
+//   // if route requires admin and user is not admin, send to user dashboard
+//   if (adminOnly && user?.role !== "admin") return <Navigate to="/devices" />;
+//   // if route is open but user is admin, redirect them to admin panel
+//   if (!adminOnly && user?.role === "admin") {
+//     return <Navigate to="/admin/dashboard" replace />;
+//   }
+//   return children;
+// }
+
 function ProtectedRoute({ children, adminOnly = false }) {
-  const { isAuthenticated, loading, user } = useAuth();
-  if (loading) return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
+  const { isAuthenticated, user, loading } = useAuth();  // ✅ FIX
+
+  if (loading) {
+    return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
+  }
+
   if (!isAuthenticated) {
     return <Navigate to={adminOnly ? "/admin-login" : "/login"} />;
   }
-  // if route requires admin and user is not admin, send to user dashboard
-  if (adminOnly && user?.role !== "admin") return <Navigate to="/devices" />;
-  // if route is open but user is admin, redirect them to admin panel
-  if (!adminOnly && user?.role === "admin") {
-    return <Navigate to="/admin/dashboard" replace />;
+
+  if (adminOnly && user?.role !== "admin") {
+    return <Navigate to="/devices" />;
   }
+
   return children;
 }
 
@@ -48,9 +66,18 @@ function AdminOnlyRoute({ children }) {
 
 // Public Route (redirect if logged in)
 function PublicRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
-  if (loading) return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
-  return !isAuthenticated ? children : <Navigate to="/devices" />;
+  const { isAuthenticated, loading, user } = useAuth();
+
+  if (loading) return <LoadingSpinner fullScreen message="Authenticating..." />;
+
+  if (!isAuthenticated) return children;
+
+  // ✅ FIX: redirect based on role
+  if (user?.role === "admin") {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  return <Navigate to="/devices" replace />;
 }
 
 function App() {
@@ -124,6 +151,7 @@ function App() {
             <Route path="devices" element={null} />
             <Route path="tickets" element={null} />
             <Route path="mydevices" element={null} />
+            <Route path="returndevice" element={null} />
             <Route path="requesthistory" element={null} />
             <Route path="overdue" element={null} />
             <Route path="reportissue" element={null} />

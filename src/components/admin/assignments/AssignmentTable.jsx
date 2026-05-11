@@ -13,6 +13,17 @@ export default function AssignmentTable({ assignments = [], onReturn }) {
     return days;
   };
 
+  const handleReturn = async (assignment) => {
+    if (!onReturn || assignment.status === "returned") return;
+
+    const confirmed = window.confirm(
+      `Return ${assignment.device?.brand || "this"} ${assignment.device?.model || "device"} and revoke this assignment?`,
+    );
+    if (!confirmed) return;
+
+    await onReturn(assignment.id);
+  };
+
   if (assignments.length === 0) {
     return (
       <div className="no-assignments-container">
@@ -81,7 +92,7 @@ export default function AssignmentTable({ assignments = [], onReturn }) {
                     <Clock className="assignments-duration-icon" />
                     {calculateDays(
                       assignment.assigned_date,
-                      assignment.returned_date,
+                      assignment.return_date,
                     )}{" "}
                     days
                   </div>
@@ -98,6 +109,21 @@ export default function AssignmentTable({ assignments = [], onReturn }) {
                     {assignment.status.charAt(0).toUpperCase() +
                       assignment.status.slice(1)}
                   </span>
+                </td>
+
+                <td>
+                  {assignment.status === "returned" ? (
+                    <button className="assignments-action-btn is-returned" disabled>
+                      Returned
+                    </button>
+                  ) : (
+                    <button
+                      className="assignments-action-btn"
+                      onClick={() => handleReturn(assignment)}
+                    >
+                      Revoke & Return
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

@@ -82,8 +82,7 @@ export const authAPI = {
   login: (credentials) => api.post("/auth/login/", credentials),
 
   // Logout
-  logout: (refreshToken) =>
-    api.post("/auth/logout/", { refresh_token: refreshToken }),
+  logout: (data) =>api.post("/auth/logout/", data),
 
   // Get current user
   getCurrentUser: () => api.get("/auth/me/"),
@@ -124,7 +123,11 @@ export const inventoryAPI = {
   getDashboardStats: () => api.get("/inventory/dashboard/stats/"),
 
   // Devices
-  getDevices: (params) => api.get("/inventory/devices/", { params }),
+  // getDevices: (params) => api.get("/inventory/devices/", { params }),
+  getDevices: (params) =>
+  api.get("/inventory/devices/", {
+    params: { page_size: 1000, ...params },
+  }),
   getDevice: (id) => api.get(`/inventory/devices/${id}/`),
   createDevice: (data) => api.post("/inventory/devices/", data),
   updateDevice: (id, data) => api.patch(`/inventory/devices/${id}/`, data),
@@ -135,7 +138,12 @@ export const inventoryAPI = {
   markAvailable: (id) => api.post(`/inventory/devices/${id}/mark_available/`),
 
   // Assignments
-  getAssignments: (params) => api.get("/inventory/assignments/", { params }),
+  // getAssignments: (params) => api.get("/inventory/assignments/", { params }),
+  getAssignments: (params) =>
+  api.get("/inventory/assignments/", {
+    params: { page_size: 1000, ...params },
+  }),
+
   getAssignment: (id) => api.get(`/inventory/assignments/${id}/`),
   createAssignment: (data) => api.post("/inventory/assignments/", data),
   updateAssignment: (id, data) =>
@@ -143,6 +151,10 @@ export const inventoryAPI = {
   deleteAssignment: (id) => api.delete(`/inventory/assignments/${id}/`),
   returnDevice: (id, notes) =>
     api.post(`/inventory/assignments/${id}/return_device/`, {
+      return_notes: notes,
+    }),
+  revokeAssignment: (id, notes) =>
+    api.post(`/inventory/assignments/${id}/revoke/`, {
       return_notes: notes,
     }),
   getMyAssignments: () => api.get("/inventory/assignments/my_assignments/"),
@@ -161,6 +173,8 @@ export const inventoryAPI = {
   createTicket: (data) => api.post("/inventory/tickets/", data),
   updateTicket: (id, data) => api.patch(`/inventory/tickets/${id}/`, data),
   deleteTicket: (id) => api.delete(`/inventory/tickets/${id}/`),
+  revokeTicket: (id, resolution_notes) =>
+    api.post(`/inventory/tickets/${id}/revoke/`, { resolution_notes }),
   assignTicket: (id, employeeId) =>
     api.post(`/inventory/tickets/${id}/assign/`, { assigned_to: employeeId }),
   resolveTicket: (id, notes) =>
@@ -176,12 +190,18 @@ export const inventoryAPI = {
   approveDeviceRequest: (id) => api.post(`/inventory/device-requests/${id}/grant/`),
   rejectDeviceRequest: (id, reason) =>
     api.post(`/inventory/device-requests/${id}/reject/`, { reason }),
+  revokeDeviceRequest: (id, reason) =>
+    api.post(`/inventory/device-requests/${id}/revoke/`, { reason }),
   getMyDeviceRequests: () => api.get("/inventory/device-requests/"),
 };
 
 // Employee APIs
 export const employeeAPI = {
-  getEmployees: (params) => api.get("/auth/employees/", { params }),
+  // getEmployees: (params) => api.get("/auth/employees/", { params }),
+  getEmployees: (params) =>
+  api.get("/auth/employees/", {
+    params: { page_size: 1000, ...params },
+  }),
   getEmployee: (id) => api.get(`/auth/employees/${id}/`),
   createEmployee: (data) => api.post("/auth/employees/", data),
   updateEmployee: (id, data) => api.patch(`/auth/employees/${id}/`, data),

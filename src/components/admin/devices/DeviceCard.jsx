@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Calendar, Package, AlertCircle } from "lucide-react";
+import { uploadImage, validateImageFile } from "../../../services/imageUpload";
 import "./DeviceCard.css";
 
 export default function DeviceCard({ device, onAssign, onEdit, assignedTo }) {
@@ -20,18 +21,65 @@ export default function DeviceCard({ device, onAssign, onEdit, assignedTo }) {
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [editDevice, setEditDevice] = useState({ ...device });
+  const [editImageFile, setEditImageFile] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
-  const handleSaveEdit = () => {
-    if (onEdit) {
-      onEdit(editDevice);
+  useEffect(() => {
+    setEditDevice({ ...device });
+  }, [device]);
+
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "Not set";
+    const date = new Date(dateValue);
+    return Number.isNaN(date.getTime())
+      ? "Not set"
+      : date.toLocaleDateString();
+  };
+
+  const handleSaveEdit = async () => {
+    setUploadingImage(true);
+    try {
+      let deviceData = { ...editDevice };
+      
+      // Handle image upload if a new image was selected
+      if (editImageFile) {
+        const validation = validateImageFile(editImageFile);
+        if (!validation.valid) {
+          alert(`Invalid image: ${validation.error}`);
+          setUploadingImage(false);
+          return;
+        }
+        
+        const imageUrl = await uploadImage(editImageFile, {
+          allowBase64Fallback: false,
+        });
+        deviceData.image_url = imageUrl;
+      }
+      
+      if (onEdit) {
+        await onEdit(deviceData);
+      }
+      setShowEditModal(false);
+      setEditImageFile(null);
+    } catch (err) {
+      console.error("Error saving device:", err);
+      alert("Failed to save device. Please try again.");
+    } finally {
+      setUploadingImage(false);
     }
-    setShowEditModal(false);
   };
 
   return (
     <div className="device-card">
       <div className="device-image">
-        <img src={device.image} alt="" />
+        <img
+          src={
+            device.image_url ||
+            device.image ||
+            "https://via.placeholder.com/320x180?text=No+Image"
+          }
+          alt={`${device.brand || "Device"} ${device.model || ""}`.trim()}
+        />
       </div>
 
       <div className="device-card-header">
@@ -52,7 +100,7 @@ export default function DeviceCard({ device, onAssign, onEdit, assignedTo }) {
         <div className="detail-item">
           <Calendar className="detail-icon" />
           <span>
-            Purchased: {new Date(device.purchase_date).toLocaleDateString()}
+            Purchased: {formatDate(device.purchase_date)}
           </span>
         </div>
         <div className="detail-item">
@@ -129,6 +177,20 @@ export default function DeviceCard({ device, onAssign, onEdit, assignedTo }) {
                 >
                   <option value="phone">Phone</option>
                   <option value="laptop">Laptop</option>
+                  <option value="desktop">Desktop</option>
+                  <option value="pc">PC</option>
+                  <option value="monitor">Monitor</option>
+                  <option value="keyboard">Keyboard</option>
+                  <option value="mouse">Mouse</option>
+                  <option value="headset">Headset</option>
+                  <option value="headphone">Headphone</option>
+                  <option value="tablet">Tablet</option>
+                  <option value="cable">Cable</option>
+                  <option value="charger">Charger</option>
+                  <option value="pendrive">Pendrive</option>
+                  <option value="hard_drive">Hard Drive</option>
+                  <option value="accessories">Accessories</option>
+                  <option value="other">Other</option>
                 </select>
 
                 <label>Brand</label>
@@ -215,15 +277,17 @@ export default function DeviceCard({ device, onAssign, onEdit, assignedTo }) {
                   onChange={(e) => {
                     const file = e.target.files[0];
                     if (file) {
-                      const imageURL = URL.createObjectURL(file);
-                      setEditDevice({ ...editDevice, image: imageURL });
+                      setEditImageFile(file);
+                      const previewURL = URL.createObjectURL(file);
+                      setEditDevice({ ...editDevice, image_url: previewURL });
                     }
                   }}
+                  disabled={uploadingImage}
                 />
 
-                {editDevice.image && (
+                {editDevice.image_url && (
                   <img
-                    src={editDevice.image}
+                    src={editDevice.image_url}
                     alt="Preview"
                     style={{
                       marginTop: "10px",
@@ -240,11 +304,16 @@ export default function DeviceCard({ device, onAssign, onEdit, assignedTo }) {
                 <button
                   className="device-btn-cancel"
                   onClick={() => setShowEditModal(false)}
+                  disabled={uploadingImage}
                 >
                   Cancel
                 </button>
-                <button className="device-btn-submit" onClick={handleSaveEdit}>
-                  Save
+                <button 
+                  className="device-btn-submit" 
+                  onClick={handleSaveEdit}
+                  disabled={uploadingImage}
+                >
+                  {uploadingImage ? "Saving..." : "Save"}
                 </button>
               </div>
             </div>

@@ -3,25 +3,29 @@
  * Supports: Cloudinary (production) and Base64 (development)
  */
 
-export const uploadImage = async (file) => {
+export const uploadImage = async (file, options = {}) => {
   if (!file) return null;
 
-  const enableVercelBlob = import.meta.env.VITE_ENABLE_VERCEL_BLOB === "true";
+  const { allowBase64Fallback = true } = options;
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
-  // Prefer Vercel Blob (requires serverless upload endpoint)
-  if (enableVercelBlob) {
-    try {
-      return await uploadToVercelBlob(file);
-    } catch (error) {
-      console.warn("Vercel Blob upload failed, falling back.", error);
-    }
+  // Prefer Vercel Blob for device images when the upload endpoint is available.
+  try {
+    return await uploadToVercelBlob(file);
+  } catch (error) {
+    console.warn("Vercel Blob upload failed, falling back.", error);
   }
 
   // Use Cloudinary if configured
   if (cloudName && uploadPreset) {
     return await uploadToCloudinary(file, cloudName, uploadPreset);
+  }
+
+  if (!allowBase64Fallback) {
+    throw new Error(
+      "Image upload is not configured. Please enable Vercel Blob or Cloudinary.",
+    );
   }
 
   // Fallback to base64 conversion for development

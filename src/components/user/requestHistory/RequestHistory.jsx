@@ -232,6 +232,8 @@ const RequestHistory = ({
         return "rh-status-declined";
       case "consent_pending":
         return "rh-status-consent";
+      case "returned":
+        return "rh-status-returned";
       default:
         return "";
     }
@@ -251,6 +253,8 @@ const RequestHistory = ({
         return "✕";
       case "consent_pending":
         return "!";
+      case "returned":
+        return "↩";
       default:
         return "";
     }
@@ -520,6 +524,8 @@ const RequestHistory = ({
                 ? "consent"
                 : request.status === "pending"
                 ? "pending"
+                : request.status === "returned"
+                ? "returned"
                 : request.status === "rejected"
                 ? "declined"
                 : "approved"
@@ -593,6 +599,18 @@ const RequestHistory = ({
                       <div className="rh-date-item">
                         <span className="rh-date-label">
                           Rejected
+                        </span>
+                        <span className="rh-date-value">
+                          {formatDate(request.updated_at)}
+                        </span>
+                      </div>
+                    )}
+
+                  {request.status === "returned" &&
+                    request.updated_at && (
+                      <div className="rh-date-item">
+                        <span className="rh-date-label">
+                          Returned
                         </span>
                         <span className="rh-date-value">
                           {formatDate(request.updated_at)}

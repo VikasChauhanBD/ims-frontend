@@ -36,7 +36,7 @@
   z-index: 40;
   padding: 8px 0 24px;
   background: rgba(248, 250, 252, 0.97);
-  border-radius: inherit;
+  border-radius: 20px;
 }
 
 @media (max-width: 640px) {

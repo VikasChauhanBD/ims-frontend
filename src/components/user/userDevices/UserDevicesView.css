@@ -20,6 +20,98 @@
   color: #6b7280;
 }
 
+.user-device-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+}
+
+.user-device-category-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  text-align: left;
+  padding: 1.15rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.16), transparent 45%),
+    rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.12);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.user-device-category-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.16);
+}
+
+.active-category-card {
+  border-color: rgba(37, 99, 235, 0.42);
+  box-shadow: 0 22px 45px rgba(37, 99, 235, 0.2);
+  transform: translateY(-4px);
+}
+
+.user-device-category-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.user-device-category-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+  color: #1d4ed8;
+}
+
+.user-device-category-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.user-device-category-count {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.user-device-category-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.user-device-category-card p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.55;
+  min-height: 46px;
+}
+
+.user-device-category-meta {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(219, 234, 254, 0.8);
+  color: #1d4ed8;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
 .user-device-add-btn {
   display: inline-flex;
   align-items: center;
@@ -89,6 +181,10 @@
   gap: 0.75rem;
 }
 
+.user-device-filter-group > * {
+  min-width: 0;
+}
+
 .user-device-filter-box {
   position: relative;
   flex: 1;
@@ -117,6 +213,79 @@
 .user-device-filter-box select:focus {
   border-color: transparent;
   box-shadow: 0 0 0 2px #3b82f6;
+}
+
+.user-device-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border: 1px solid #dbeafe;
+  border-radius: 0.75rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+
+.user-device-reset-btn:hover:not(:disabled) {
+  background: #dbeafe;
+}
+
+.user-device-reset-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.user-device-reset-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.user-device-active-category {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(239, 246, 255, 0.95), rgba(255, 255, 255, 0.8));
+  border: 1px solid rgba(191, 219, 254, 0.9);
+}
+
+.user-device-active-label {
+  display: inline-block;
+  margin-bottom: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2563eb;
+}
+
+.user-device-active-category h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #111827;
+}
+
+.user-device-active-category p {
+  margin: 0.2rem 0 0;
+  color: #6b7280;
+}
+
+.user-device-active-status {
+  align-self: flex-start;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1e40af;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .user-devices-grid {
@@ -154,10 +323,19 @@
   .user-devices-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .user-device-active-category {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 568px) {
   .user-devices-filters {
+    flex-direction: column;
+  }
+
+  .user-device-filter-group {
     flex-direction: column;
   }
 

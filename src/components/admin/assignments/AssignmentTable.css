@@ -137,6 +137,29 @@
   color: #424242;
 }
 
+.assignments-action-btn {
+  border: none;
+  border-radius: 999px;
+  background: #111827;
+  color: #ffffff;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+}
+
+.assignments-action-btn:hover {
+  transform: translateY(-1px);
+  background: #1f2937;
+}
+
+.assignments-action-btn.is-returned {
+  background: #e5e7eb;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
 /* Empty State */
 .no-assignments-container {
   background: transparent;

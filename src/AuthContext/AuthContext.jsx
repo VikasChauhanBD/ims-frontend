@@ -1,20 +1,20 @@
 // src/contexts/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI, handleAPIError } from '../services/api';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { authAPI, handleAPIError } from "../services/api";
 
 const AuthContext = createContext(null);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Check if user is logged in on mount
@@ -23,10 +23,11 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAuth = async () => {
-    const token = localStorage.getItem('access_token');
-    
+    const token = localStorage.getItem("access_token");
+
     if (!token) {
-      setLoading(false);
+      setUser(null);
+      setIsAuthenticated(false);
       return;
     }
 
@@ -35,12 +36,9 @@ export const AuthProvider = ({ children }) => {
       setUser(response.data);
       setIsAuthenticated(true);
     } catch {
-      // Token is invalid, clear storage
       localStorage.clear();
       setIsAuthenticated(false);
       setUser(null);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -50,8 +48,8 @@ export const AuthProvider = ({ children }) => {
       const { employee, tokens } = response.data;
 
       // Store tokens
-      localStorage.setItem('access_token', tokens.access);
-      localStorage.setItem('refresh_token', tokens.refresh);
+      localStorage.setItem("access_token", tokens.access);
+      localStorage.setItem("refresh_token", tokens.refresh);
 
       // Set user state
       setUser(employee);
@@ -83,8 +81,8 @@ export const AuthProvider = ({ children }) => {
       const { employee, tokens } = response.data;
 
       // Store tokens
-      localStorage.setItem('access_token', tokens.access);
-      localStorage.setItem('refresh_token', tokens.refresh);
+      localStorage.setItem("access_token", tokens.access);
+      localStorage.setItem("refresh_token", tokens.refresh);
 
       // Set user state
       setUser(employee);
@@ -112,12 +110,12 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      const refreshToken = localStorage.getItem('refresh_token');
+      const refreshToken = localStorage.getItem("refresh_token");
       if (refreshToken) {
-        await authAPI.logout(refreshToken);
+        await authAPI.logout({ refresh: refreshToken });
       }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     } finally {
       // Clear local storage and state
       localStorage.clear();
@@ -186,8 +184,8 @@ export const AuthProvider = ({ children }) => {
     return user.role === roles;
   };
 
-  const isAdmin = () => hasRole('admin');
-  const isManager = () => hasRole(['admin', 'manager']);
+  const isAdmin = () => hasRole("admin");
+  const isManager = () => hasRole(["admin", "manager"]);
 
   const value = {
     user,
@@ -207,11 +205,7 @@ export const AuthProvider = ({ children }) => {
     checkAuth,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export default AuthContext;

@@ -49,19 +49,6 @@ function Admin() {
     actions: [],
   });
 
-  // Fetch data from backend - optimized polling with longer intervals
-  useEffect(() => {
-    fetchData({ background: false });
-    const mainInterval = setInterval(() => fetchData({ background: true }), 45000);
-    const requestInterval = setInterval(checkForNewDeviceRequests, 12000);
-
-    return () => {
-      clearInterval(mainInterval);
-      clearInterval(requestInterval);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => {
     const raw = sessionStorage.getItem("ims_pending_welcome");
     if (!raw || !user?.id) return;
@@ -89,96 +76,82 @@ function Admin() {
   const previousConsentSubmittedRef = useRef(new Map());
   const initializedPendingDeviceRequestsRef = useRef(false);
 
-  const checkForNewDeviceRequests = async () => {
-    if (document.visibilityState === "hidden") return;
+  const maybeNotifyDeviceRequestChanges = (allRequests) => {
+    const pendingRequests = allRequests.filter(
+      (request) => request.status === "pending",
+    );
+    const nextPendingIds = new Set(pendingRequests.map((request) => request.id));
+    const nextConsentMap = new Map(
+      allRequests.map((request) => [
+        request.id,
+        Boolean(
+          request.assignment_details?.consent_form_data &&
+            Object.keys(request.assignment_details.consent_form_data || {}).length,
+        ),
+      ]),
+    );
 
-    try {
-      const requestsResponse = await inventoryAPI.getDeviceRequests();
-      const allRequests = Array.isArray(requestsResponse.data)
-        ? requestsResponse.data
-        : requestsResponse.data.results || [];
-      const pendingRequests = allRequests.filter(
-        (request) => request.status === "pending",
+    if (initializedPendingDeviceRequestsRef.current) {
+      const previousPendingIds = previousPendingDeviceRequestIdsRef.current;
+      const previousConsentMap = previousConsentSubmittedRef.current;
+      const newPendingRequests = pendingRequests.filter(
+        (request) => !previousPendingIds.has(request.id),
       );
+      const newlySubmittedConsents = allRequests.filter((request) => {
+        const hadConsent = previousConsentMap.get(request.id) || false;
+        const hasConsentNow = nextConsentMap.get(request.id) || false;
+        return !hadConsent && hasConsentNow && request.status === "consent_pending";
+      });
 
-      const nextPendingIds = new Set(pendingRequests.map((request) => request.id));
-      const nextConsentMap = new Map(
-        allRequests.map((request) => [
-          request.id,
-          Boolean(
-            request.assignment_details?.consent_form_data &&
-              Object.keys(request.assignment_details.consent_form_data || {})
-                .length,
-          ),
-        ]),
-      );
-
-      if (initializedPendingDeviceRequestsRef.current) {
-        const previousPendingIds = previousPendingDeviceRequestIdsRef.current;
-        const previousConsentMap = previousConsentSubmittedRef.current;
-        const newPendingRequests = pendingRequests.filter(
-          (request) => !previousPendingIds.has(request.id),
-        );
-        const newlySubmittedConsents = allRequests.filter((request) => {
-          const hadConsent = previousConsentMap.get(request.id) || false;
-          const hasConsentNow = nextConsentMap.get(request.id) || false;
-          return !hadConsent && hasConsentNow && request.status === "consent_pending";
+      if (newPendingRequests.length) {
+        setPopup({
+          open: true,
+          title: "New Device Request",
+          message:
+            newPendingRequests.length === 1
+              ? "A new device request is waiting for review."
+              : `${newPendingRequests.length} new device requests are waiting for review.`,
+          type: "info",
+          actions: [
+            {
+              label: "Open Device Requests",
+              onClick: () => {
+                navigate("/admin/devicerequests");
+                setPopup((prev) => ({ ...prev, open: false }));
+              },
+            },
+          ],
         });
-
-        if (newPendingRequests.length) {
-          setPopup({
-            open: true,
-            title: "New Device Request",
-            message:
-              newPendingRequests.length === 1
-                ? "A new device request is waiting for review."
-                : `${newPendingRequests.length} new device requests are waiting for review.`,
-            type: "info",
-            actions: [
-              {
-                label: "Open Device Requests",
-                onClick: () => {
-                  navigate("/admin/devicerequests");
-                  setPopup((prev) => ({ ...prev, open: false }));
-                },
-              },
-            ],
-          });
-        }
-
-        if (newlySubmittedConsents.length) {
-          setPopup({
-            open: true,
-            title: "Consent Form Submitted",
-            message:
-              newlySubmittedConsents.length === 1
-                ? "A consent form was submitted. Please check Device Requests & Undertakings."
-                : `${newlySubmittedConsents.length} consent forms were submitted. Please review them.`,
-            type: "info",
-            actions: [
-              {
-                label: "Open Device Requests",
-                onClick: () => {
-                  navigate("/admin/devicerequests");
-                  setPopup((prev) => ({ ...prev, open: false }));
-                },
-              },
-            ],
-          });
-        }
       }
 
-      setDeviceRequests(allRequests);
-
-      previousPendingDeviceRequestIdsRef.current = nextPendingIds;
-      previousConsentSubmittedRef.current = nextConsentMap;
-      initializedPendingDeviceRequestsRef.current = true;
-    } catch (err) {
-      console.error("Error checking for new device requests:", err);
+      if (newlySubmittedConsents.length) {
+        setPopup({
+          open: true,
+          title: "Consent Form Submitted",
+          message:
+            newlySubmittedConsents.length === 1
+              ? "A consent form was submitted. Please check Device Requests & Undertakings."
+              : `${newlySubmittedConsents.length} consent forms were submitted. Please review them.`,
+          type: "info",
+          actions: [
+            {
+              label: "Open Device Requests",
+              onClick: () => {
+                navigate("/admin/devicerequests");
+                setPopup((prev) => ({ ...prev, open: false }));
+              },
+            },
+          ],
+        });
+      }
     }
+
+    previousPendingDeviceRequestIdsRef.current = nextPendingIds;
+    previousConsentSubmittedRef.current = nextConsentMap;
+    initializedPendingDeviceRequestsRef.current = true;
   };
 
-  const fetchData = async ({ background = false } = {}) => {
+  const fetchData = async ({ background = false, notifyRequestChanges = false } = {}) => {
     if (background && document.visibilityState === "hidden") return;
 
     if (background) {
@@ -243,22 +216,26 @@ function Admin() {
         ? deviceRequestsResponse.data
         : deviceRequestsResponse.data.results || [];
       setDeviceRequests(fetchedDeviceRequests);
-      previousPendingDeviceRequestIdsRef.current = new Set(
-        fetchedDeviceRequests
-          .filter((request) => request.status === "pending")
-          .map((request) => request.id),
-      );
-      previousConsentSubmittedRef.current = new Map(
-        fetchedDeviceRequests.map((request) => [
-          request.id,
-          Boolean(
-            request.assignment_details?.consent_form_data &&
-              Object.keys(request.assignment_details.consent_form_data || {})
-                .length,
-          ),
-        ]),
-      );
-      initializedPendingDeviceRequestsRef.current = true;
+      if (notifyRequestChanges) {
+        maybeNotifyDeviceRequestChanges(fetchedDeviceRequests);
+      } else {
+        previousPendingDeviceRequestIdsRef.current = new Set(
+          fetchedDeviceRequests
+            .filter((request) => request.status === "pending")
+            .map((request) => request.id),
+        );
+        previousConsentSubmittedRef.current = new Map(
+          fetchedDeviceRequests.map((request) => [
+            request.id,
+            Boolean(
+              request.assignment_details?.consent_form_data &&
+                Object.keys(request.assignment_details.consent_form_data || {})
+                  .length,
+            ),
+          ]),
+        );
+        initializedPendingDeviceRequestsRef.current = true;
+      }
 
       setError(null);
     } catch (err) {
@@ -270,18 +247,165 @@ function Admin() {
     }
   };
 
+  // Fetch data from backend with a single background poll.
+  useEffect(() => {
+    fetchData({ background: false, notifyRequestChanges: true });
+
+    const interval = setInterval(() => {
+      fetchData({ background: true, notifyRequestChanges: true });
+    }, 60000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchData({ background: true, notifyRequestChanges: true });
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleAddDevice = async (device) => {
     try {
-      await inventoryAPI.createDevice(device);
-      fetchData({ background: true });
+      const payload = {
+        ...device,
+        purchase_date:
+          device.purchase_date && String(device.purchase_date).trim()
+            ? device.purchase_date
+            : null,
+        serial_number:
+          device.serial_number && String(device.serial_number).trim()
+            ? device.serial_number.trim()
+            : null,
+        image_url:
+          device.image_url &&
+          !String(device.image_url).startsWith("blob:") &&
+          !String(device.image_url).startsWith("data:")
+            ? device.image_url
+            : "",
+      };
+
+      const response = await inventoryAPI.createDevice(payload);
+      await fetchData({ background: true });
+      setPopup({
+        open: true,
+        title: "Device Added",
+        message: "Device has been successfully added to inventory.",
+        type: "success",
+      });
+      return response.data;
     } catch (err) {
       console.error("Failed to create device:", err);
       setPopup({
         open: true,
         title: "Device Creation Failed",
-        message: "Error creating device. Please try again.",
+        message:
+          err.response?.data?.detail ||
+          JSON.stringify(err.response?.data || {}) ||
+          err.message ||
+          "Error creating device. Please try again.",
         type: "error",
       });
+      throw err;
+    }
+  };
+
+  const handleEditDevice = async (editedDevice) => {
+    try {
+      const normalizedPurchaseDate =
+        editedDevice.purchase_date && String(editedDevice.purchase_date).trim()
+          ? editedDevice.purchase_date
+          : null;
+      const normalizedSerialNumber =
+        editedDevice.serial_number && String(editedDevice.serial_number).trim()
+          ? editedDevice.serial_number.trim()
+          : null;
+      const normalizedImageUrl =
+        editedDevice.image_url &&
+        !editedDevice.image_url.startsWith("blob:") &&
+        !editedDevice.image_url.startsWith("data:")
+          ? editedDevice.image_url
+          : "";
+
+      // Prepare device data - only include fields the backend expects
+      const deviceData = {
+        device_id: editedDevice.device_id,
+        name:
+          editedDevice.name ||
+          [editedDevice.brand, editedDevice.model].filter(Boolean).join(" ").trim(),
+        device_type: editedDevice.device_type,
+        brand: editedDevice.brand,
+        model: editedDevice.model,
+        serial_number: normalizedSerialNumber,
+        purchase_date: normalizedPurchaseDate,
+        status: editedDevice.status,
+        condition: editedDevice.condition,
+        location: editedDevice.location || "",
+        notes: editedDevice.notes || "",
+      };
+      
+      if (normalizedImageUrl) {
+        deviceData.image_url = normalizedImageUrl;
+      }
+      
+      const response = await inventoryAPI.updateDevice(editedDevice.id, deviceData);
+      
+      setPopup({
+        open: true,
+        title: "Device Updated",
+        message: "Device has been successfully updated.",
+        type: "success",
+      });
+      
+      await fetchData({ background: true });
+      return response.data;
+    } catch (err) {
+      console.error("Failed to update device:", err);
+      setPopup({
+        open: true,
+        title: "Device Update Failed",
+        message:
+          err.response?.data?.detail ||
+          JSON.stringify(err.response?.data || {}) ||
+          err.message ||
+          "Error updating device. Please try again.",
+        type: "error",
+      });
+      throw err;
+    }
+  };
+
+  const handleRevokeAssignment = async (assignmentId) => {
+    try {
+      await inventoryAPI.revokeAssignment(
+        assignmentId,
+        "Assignment revoked and device returned by admin.",
+      );
+      await fetchData({ background: true });
+      setPopup({
+        open: true,
+        title: "Assignment Revoked",
+        message: "The assignment was revoked and the device was returned to inventory.",
+        type: "success",
+      });
+    } catch (err) {
+      console.error("Failed to revoke assignment:", err);
+      setPopup({
+        open: true,
+        title: "Revoke Failed",
+        message:
+          err.response?.data?.detail ||
+          err.response?.data?.error ||
+          err.message ||
+          "Unable to revoke the assignment right now.",
+        type: "error",
+      });
+      throw err;
     }
   };
 
@@ -320,7 +444,7 @@ function Admin() {
   const assignmentsWithDetails = useMemo(() => {
     return assignments.map((assignment) => ({
       ...assignment,
-      device: devices.find((d) => d.id === assignment.device_id || d.id === assignment.device),
+      device: devices.find((d) => d.id === assignment.device_id || d.id === assignment.device?.id),
       employee: employees.find((e) => e.id === assignment.employee_id || e.id === assignment.employee),
     }));
   }, [assignments, devices, employees]);
@@ -420,10 +544,9 @@ function Admin() {
         {activeTab === "devices" && (
           <DevicesView
             devices={devices}
-            employees={employees}
             getEmployeeForDevice={getEmployeeForDevice}
-            onRefresh={() => fetchData({ background: true })}
             onAddDevice={handleAddDevice}
+            onEditDevice={handleEditDevice}
           />
         )}
 
@@ -435,7 +558,10 @@ function Admin() {
         )}
 
         {activeTab === "assignments" && (
-          <AssignmentsView assignments={assignmentsWithDetails} />
+          <AssignmentsView
+            assignments={assignmentsWithDetails}
+            onReturnDevice={handleRevokeAssignment}
+          />
         )}
 
         {activeTab === "ticketrequests" && (
@@ -452,7 +578,6 @@ function Admin() {
           <DeviceRequestsView
             requests={deviceRequests}
             setRequests={setDeviceRequests}
-            devices={devices}
             employees={employees}
             onRefresh={() => fetchData({ background: true })}
           />

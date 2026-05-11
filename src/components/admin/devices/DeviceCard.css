@@ -158,6 +158,12 @@
   overflow: hidden;
 }
 
+.device-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.device-btn-assign,
 .device-btn-edit {
   width: 100%;
   background: rgba(0, 101, 255, 0.9);
@@ -173,12 +179,23 @@
   cursor: pointer;
 }
 
-.device-btn-edit:hover {
+.device-btn-assign {
+  background: rgba(17, 24, 39, 0.92);
+  border: 1px solid rgba(17, 24, 39, 0.25);
+}
+
+.device-btn-edit:hover,
+.device-btn-assign:hover {
   color: #0065ff;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid #0065ff;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 101, 255, 0.3);
+}
+
+.device-image img {
+  min-height: 180px;
+  object-fit: cover;
 }
 
 /* ----------------------- Modal box --------------------- */

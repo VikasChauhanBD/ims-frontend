@@ -127,6 +127,13 @@
   border: 1px solid #f5c6cb;
 }
 
+.device-request-status-badge.status-consent_pending,
+.device-request-status-badge.status-active {
+  background-color: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+}
+
 .device-request-status-badge.status-returned {
   background-color: #d1ecf1;
   color: #0c5460;

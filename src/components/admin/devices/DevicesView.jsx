@@ -7,15 +7,15 @@ import "./DevicesView.css";
 
 export default function DevicesView({
   devices = [],
-  employees = [],
   getEmployeeForDevice,
   onAssignDevice,
   onAddDevice,
+  onEditDevice,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
-  const [deviceList, setDeviceList] = useState(devices);
+  // const [deviceList, setDeviceList] = useState(devices);
 
   const [showModal, setShowModal] = useState(false);
   const [newDevice, setNewDevice] = useState({
@@ -38,11 +38,16 @@ export default function DevicesView({
     type: "info",
   });
 
-  const filteredDevices = deviceList.filter((device) => {
+  const filteredDevices = devices.filter((device) => {
+    const brand = String(device.brand || "").toLowerCase();
+    const model = String(device.model || "").toLowerCase();
+    const serialNumber = String(device.serial_number || "").toLowerCase();
+    const searchValue = searchTerm.toLowerCase();
+
     const matchesSearch =
-      device.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.serial_number.toLowerCase().includes(searchTerm.toLowerCase());
+      brand.includes(searchValue) ||
+      model.includes(searchValue) ||
+      serialNumber.includes(searchValue);
 
     const matchesStatus =
       filterStatus === "all" || device.status === filterStatus;
@@ -80,7 +85,9 @@ export default function DevicesView({
           return;
         }
 
-        const imageUrl = await uploadImage(imageFile);
+        const imageUrl = await uploadImage(imageFile, {
+          allowBase64Fallback: false,
+        });
         deviceData.image_url = imageUrl;
       } catch (err) {
         console.error("Failed to upload image:", err);
@@ -106,15 +113,23 @@ export default function DevicesView({
     }
 
     // Send device to parent; parent will persist and refresh
-    if (onAddDevice) onAddDevice(deviceData);
-
-    // Optimistically update local list
-    const newDeviceWithId = {
-      ...deviceData,
-      id: `temp-${Date.now()}`,
-      created_at: new Date().toISOString(),
-    };
-    setDeviceList([...deviceList, newDeviceWithId]);
+    try {
+      if (onAddDevice) {
+        await onAddDevice(deviceData);
+      }
+    } catch (err) {
+      console.error("Failed to create device:", err);
+      setPopup({
+        open: true,
+        title: "Device Creation Failed",
+        message:
+          err?.response?.data?.detail ||
+          err?.message ||
+          "Unable to add the device right now.",
+        type: "error",
+      });
+      return;
+    }
 
     setShowModal(false);
     setNewDevice({
@@ -218,8 +233,11 @@ export default function DevicesView({
               <DeviceCard
                 key={device.id}
                 device={device}
-                assignedTo={employee?.name}
+                assignedTo={
+                  employee?.full_name || employee?.name || employee?.email
+                }
                 onAssign={onAssignDevice}
+                onEdit={onEditDevice}
               />
             );
           })}
@@ -228,7 +246,7 @@ export default function DevicesView({
 
       <div className="devices-footer">
         <p>
-          Showing {filteredDevices.length} of {deviceList.length} devices
+          Showing {filteredDevices.length} of {devices.length} devices
         </p>
       </div>
 

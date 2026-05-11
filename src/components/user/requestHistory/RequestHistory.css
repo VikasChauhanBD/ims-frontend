@@ -92,6 +92,7 @@
 .rh-stat-pending  { background: #fef3c7; }
 .rh-stat-approved { background: #d1fae5; }
 .rh-stat-declined { background: #fee2e2; }
+.rh-stat-returned { background: #dbeafe; }
 
 .rh-stat-val {
   font-size: 1.2rem;
@@ -127,6 +128,7 @@
 .rh-filter-chip.declined { background: #fee2e2; color: #991b1b; }
 /* new consent chip */
 .rh-filter-chip.consent  { background: #e0e7ff; color: #3730a3; }
+.rh-filter-chip.returned { background: #dbeafe; color: #1d4ed8; }
 
 /* ── Tickets list (original) ─────────────────────────────── */
 .rh-tickets-list {
@@ -158,6 +160,7 @@
 .rh-card-pending  { border-left: 3px solid #f59e0b; }
 .rh-card-approved { border-left: 3px solid #10b981; }
 .rh-card-declined { border-left: 3px solid #ef4444; }
+.rh-card-returned { border-left: 3px solid #3b82f6; }
 
 .rh-ticket-main {
   display: flex;
@@ -193,6 +196,7 @@
 .rh-status-declined { background: #fee2e2; color: #991b1b; }
 /* new consent badge */
 .rh-status-consent  { background: #e0e7ff; color: #3730a3; }
+.rh-status-returned { background: #dbeafe; color: #1d4ed8; }
 
 .rh-status-icon {
   font-size: 1rem;

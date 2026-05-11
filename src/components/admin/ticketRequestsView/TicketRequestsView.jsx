@@ -45,6 +45,28 @@ export default function TicketRequestsView({
     }
   };
 
+  const handleRevokeTicket = async (ticketId) => {
+    try {
+      setUpdatingTicketId(ticketId);
+      await inventoryAPI.revokeTicket(
+        ticketId,
+        "Ticket revoked by admin.",
+      );
+      setTickets((prev) =>
+        prev.map((t) =>
+          t.id === ticketId
+            ? { ...t, status: normalizeTicketStatus("rejected") }
+            : t,
+        ),
+      );
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      console.error("Failed to revoke ticket", err);
+    } finally {
+      setUpdatingTicketId(null);
+    }
+  };
+
   return (
     <div className="ticket-requests-container">
       <h2 className="ticket-heading">Ticket Requests</h2>
@@ -119,6 +141,13 @@ export default function TicketRequestsView({
                   >
                     Start Repair
                   </button>
+                  <button
+                    className="btn-reject"
+                    onClick={() => handleRevokeTicket(ticket.id)}
+                    disabled={isUpdating}
+                  >
+                    Revoke Ticket
+                  </button>
                 </div>
               )}
 
@@ -130,6 +159,25 @@ export default function TicketRequestsView({
                     disabled={isUpdating}
                   >
                     Mark Repaired
+                  </button>
+                  <button
+                    className="btn-reject"
+                    onClick={() => handleRevokeTicket(ticket.id)}
+                    disabled={isUpdating}
+                  >
+                    Revoke Ticket
+                  </button>
+                </div>
+              )}
+
+              {normalizedStatus === "repaired" && (
+                <div className="ticket-actions">
+                  <button
+                    className="btn-reject"
+                    onClick={() => handleRevokeTicket(ticket.id)}
+                    disabled={isUpdating}
+                  >
+                    Revoke Ticket
                   </button>
                 </div>
               )}

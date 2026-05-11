@@ -7,7 +7,6 @@ import "./DeviceRequestsView.css";
 export default function DeviceRequestsView({
   requests = [],
   setRequests,
-  devices = [],
   employees = [],
   onRefresh,
 }) {
@@ -182,10 +181,13 @@ export default function DeviceRequestsView({
     if (!requestId) return;
 
     setProcessingRequestId(requestId);
-    setProcessingAction("reject");
+    setProcessingAction("revoke");
 
     try {
-      await inventoryAPI.rejectDeviceRequest(requestId, rejectReason || "Rejected by admin");
+      await inventoryAPI.revokeDeviceRequest(
+        requestId,
+        rejectReason || "Revoked by admin",
+      );
 
       setRequests((prev) =>
         prev.map((req) =>
@@ -199,8 +201,8 @@ export default function DeviceRequestsView({
 
       setPopup({
         open: true,
-        title: "Request Rejected",
-        message: "The device request has been rejected.",
+        title: "Request Revoked",
+        message: "The device request has been revoked and any linked device was released.",
         type: "info",
       });
     } catch (err) {
@@ -415,9 +417,9 @@ export default function DeviceRequestsView({
                           onClick={() => handleRejectClick(request.id)}
                           disabled={isProcessing}
                         >
-                          {isProcessing && processingAction === "reject"
-                            ? "Rejecting..."
-                            : "Reject"}
+                          {isProcessing && processingAction === "revoke"
+                            ? "Revoking..."
+                            : "Revoke"}
                         </button>
                       </>
                     )}
@@ -465,6 +467,19 @@ export default function DeviceRequestsView({
                         </button>
                       )}
 
+                    {(request.status === "consent_pending" ||
+                      request.status === "active") && (
+                      <button
+                        className="btn-reject"
+                        onClick={() => handleRejectClick(request.id)}
+                        disabled={isProcessing}
+                      >
+                        {isProcessing && processingAction === "revoke"
+                          ? "Revoking..."
+                          : "Revoke Request"}
+                      </button>
+                    )}
+
                     {(request.status === "rejected" || request.status === "returned") && (
                       <button className="btn-completed" disabled>
                         {request.status === "rejected" ? "Rejected" : "Completed"}
@@ -481,8 +496,8 @@ export default function DeviceRequestsView({
       {/* Reject Reason Modal */}
       <PopupModal
         open={rejectReasonModal.open}
-        title="Reject Device Request"
-        message="Please provide a reason for rejecting this device request (optional)."
+        title="Revoke Device Request"
+        message="Please provide a reason for revoking this device request (optional)."
         type="warning"
         customContent={
           <textarea
@@ -503,7 +518,7 @@ export default function DeviceRequestsView({
             },
           },
           {
-            label: "Confirm Rejection",
+            label: "Confirm Revoke",
             onClick: handleConfirmReject,
           },
         ]}
