@@ -9,6 +9,8 @@ import Receiver from "./pages/userPage/Receiver";
 import EmployeeProfile from "./components/user/profile/EmployeeProfile";
 import AdminProfile from "./components/admin/profile/AdminProfile";
 import AssignmentUndertaking from "./components/user/assignmentUndertaking/AssignmentUndertaking";
+import MyInventoryPage from "./pages/userPage/MyInventoryPage";
+import AssignedInventoryPage from "./pages/userPage/AssignedInventoryPage";
 import LoadingSpinner from "./components/common/LoadingSpinner";
 import "./App.css";
 
@@ -29,7 +31,7 @@ import "./App.css";
 // }
 
 function ProtectedRoute({ children, adminOnly = false }) {
-  const { isAuthenticated, user, loading } = useAuth();  // ✅ FIX
+  const { isAuthenticated, user, loading } = useAuth(); // ✅ FIX
 
   if (loading) {
     return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
@@ -49,7 +51,8 @@ function ProtectedRoute({ children, adminOnly = false }) {
 // User-only Route (authenticated, non-admin users only)
 function UserOnlyRoute({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
-  if (loading) return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
+  if (loading)
+    return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
   if (!isAuthenticated) return <Navigate to="/login" />;
   if (user?.role === "admin") return <Navigate to="/admin/profile" />;
   return children;
@@ -58,7 +61,8 @@ function UserOnlyRoute({ children }) {
 // Admin-only Route (authenticated, admin users only)
 function AdminOnlyRoute({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
-  if (loading) return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
+  if (loading)
+    return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
   if (!isAuthenticated) return <Navigate to="/admin-login" />;
   if (user?.role !== "admin") return <Navigate to="/profile" />;
   return children;
@@ -131,6 +135,15 @@ function App() {
           />
 
           <Route
+            path="/my-inventory"
+            element={
+              <UserOnlyRoute>
+                <MyInventoryPage />
+              </UserOnlyRoute>
+            }
+          />
+
+          <Route
             path="/admin/profile"
             element={
               <AdminOnlyRoute>
@@ -169,11 +182,15 @@ function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={null} />
             <Route path="devices" element={null} />
+            <Route path="inventoryassets" element={null} />
             <Route path="employees" element={null} />
             <Route path="assignments" element={null} />
             <Route path="ticketrequests" element={null} />
             <Route path="devicerequests" element={null} />
-          
+            <Route
+              path="assigned-inventory"
+              element={<AssignedInventoryPage />}
+            />
           </Route>
         </Routes>
       </BrowserRouter>

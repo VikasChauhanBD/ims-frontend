@@ -327,11 +327,131 @@
   box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
 }
 
+/* Device Details Section in Modal */
+.device-details-section {
+  background: rgba(243, 244, 246, 0.5);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(209, 213, 219, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.device-details-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.device-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.detail-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.detail-field p {
+  margin: 0;
+  font-size: 14px;
+  color: #1f2937;
+  word-break: break-word;
+}
+
+.detail-field .condition-badge,
+.detail-field .status-badge {
+  display: inline-block;
+  width: fit-content;
+}
+
+.specifications-text,
+.notes-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4b5563;
+  word-wrap: break-word;
+}
+
+/* Scrollbar styling for device details */
+.device-details-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+.device-details-section::-webkit-scrollbar-track {
+  background: rgba(209, 213, 219, 0.1);
+  border-radius: 3px;
+}
+
+.device-details-section::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.3);
+  border-radius: 3px;
+}
+
+.device-details-section::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.5);
+}
+
+/* Adjust modal box for larger content */
+.modal-box {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+/* Ensure the modal box doesn't cut off content on smaller screens */
+.modal-box::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-box::-webkit-scrollbar-track {
+  background: rgba(209, 213, 219, 0.1);
+  border-radius: 3px;
+}
+
+.modal-box::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.3);
+  border-radius: 3px;
+}
+
+.modal-box::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.5);
+}
+
 /* ------------------------- Responsive Style ------------------ */
 
 @media (max-width: 768px) {
   .modal-box {
     width: 90%;
     max-width: 400px;
+    max-height: 90vh;
+  }
+
+  .device-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-box {
+    padding: 20px;
   }
 }

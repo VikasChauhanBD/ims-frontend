@@ -77,7 +77,8 @@ export default function UserDeviceCard({
     } catch (err) {
       console.error("Device request error", err);
       const serverMessage =
-        err.response?.data?.message || err.response?.data?.detail ||
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
         err.message ||
         "Failed to submit device request. Please try again.";
       setPopup({
@@ -95,7 +96,14 @@ export default function UserDeviceCard({
     <>
       <div className="user-device-card">
         <div className="user-device-image">
-          <img src={device.image || device.image_url || "https://via.placeholder.com/320x180?text=No+Image"} alt="" />
+          <img
+            src={
+              device.image ||
+              device.image_url ||
+              "https://via.placeholder.com/320x180?text=No+Image"
+            }
+            alt=""
+          />
         </div>
 
         <div className="user-device-card-header">
@@ -169,6 +177,74 @@ export default function UserDeviceCard({
           <div className="modal-box">
             <h2>Request Device</h2>
 
+            {/* Device Details Section */}
+            <div className="device-details-section">
+              <h3>Device Information</h3>
+              <div className="device-details-grid">
+                <div className="detail-field">
+                  <label>Brand</label>
+                  <p>{device.brand}</p>
+                </div>
+                <div className="detail-field">
+                  <label>Model</label>
+                  <p>{device.model}</p>
+                </div>
+                <div className="detail-field">
+                  <label>Device Type</label>
+                  <p>{device.device_type}</p>
+                </div>
+                <div className="detail-field">
+                  <label>Serial Number</label>
+                  <p>{device.serial_number || "N/A"}</p>
+                </div>
+                <div className="detail-field">
+                  <label>Condition</label>
+                  <p>
+                    <span
+                      className={`condition-badge ${
+                        conditionColors[device.condition]
+                      }`}
+                    >
+                      {device.condition}
+                    </span>
+                  </p>
+                </div>
+                <div className="detail-field">
+                  <label>Status</label>
+                  <p>
+                    <span
+                      className={`status-badge ${statusColors[device.status]}`}
+                    >
+                      {device.status}
+                    </span>
+                  </p>
+                </div>
+                <div className="detail-field">
+                  <label>Purchase Date</label>
+                  <p>{new Date(device.purchase_date).toLocaleDateString()}</p>
+                </div>
+                {device.specifications &&
+                  Object.keys(device.specifications).length > 0 && (
+                    <div className="detail-field full-width">
+                      <label>Specifications</label>
+                      <p className="specifications-text">
+                        {typeof device.specifications === "string"
+                          ? device.specifications
+                          : Object.entries(device.specifications)
+                              .map(([key, value]) => `${key}: ${value}`)
+                              .join(", ")}
+                      </p>
+                    </div>
+                  )}
+                {device.notes && (
+                  <div className="detail-field full-width">
+                    <label>Notes</label>
+                    <p className="notes-text">{device.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="form-group">
               <label>Reason for Request</label>
               <textarea
@@ -176,6 +252,7 @@ export default function UserDeviceCard({
                 onChange={(e) =>
                   setRequestData({ ...requestData, reason: e.target.value })
                 }
+                placeholder="Please provide a reason for requesting this device..."
               ></textarea>
             </div>
 

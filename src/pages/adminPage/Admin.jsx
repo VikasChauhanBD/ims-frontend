@@ -6,6 +6,7 @@ import {
   Users,
   FileText,
   Ticket,
+  Database,
 } from "lucide-react";
 import Navbar from "../../components/navbar/Navbar";
 import Dashboard from "../../components/admin/dashboard/Dashboard";
@@ -14,6 +15,7 @@ import EmployeesView from "../../components/admin/employees/EmployeesView";
 import AssignmentsView from "../../components/admin/assignments/AssignmentsView";
 import TicketRequestsView from "../../components/admin/ticketRequestsView/TicketRequestsView";
 import DeviceRequestsView from "../../components/admin/deviceRequestsView/DeviceRequestsView";
+import InventoryDashboard from "../../components/admin/inventoryAssets/InventoryDashboard";
 import PopupModal from "../../components/common/PopupModal";
 import {
   IndeterminateLoadBar,
@@ -22,7 +24,11 @@ import {
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
 import { inventoryAPI, employeeAPI } from "../../services/api";
 import { useAuth } from "../../AuthContext/AuthContext";
-import { mockEmployees, mockDevices, mockAssignments } from "../../assets/data/mockData";
+import {
+  mockEmployees,
+  mockDevices,
+  mockAssignments,
+} from "../../assets/data/mockData";
 import "./Admin.css";
 
 function Admin() {
@@ -38,6 +44,7 @@ function Admin() {
   const [assignments, setAssignments] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [deviceRequests, setDeviceRequests] = useState([]);
+  const [inventoryAssets, setInventoryAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -80,13 +87,16 @@ function Admin() {
     const pendingRequests = allRequests.filter(
       (request) => request.status === "pending",
     );
-    const nextPendingIds = new Set(pendingRequests.map((request) => request.id));
+    const nextPendingIds = new Set(
+      pendingRequests.map((request) => request.id),
+    );
     const nextConsentMap = new Map(
       allRequests.map((request) => [
         request.id,
         Boolean(
           request.assignment_details?.consent_form_data &&
-            Object.keys(request.assignment_details.consent_form_data || {}).length,
+          Object.keys(request.assignment_details.consent_form_data || {})
+            .length,
         ),
       ]),
     );
@@ -100,7 +110,9 @@ function Admin() {
       const newlySubmittedConsents = allRequests.filter((request) => {
         const hadConsent = previousConsentMap.get(request.id) || false;
         const hasConsentNow = nextConsentMap.get(request.id) || false;
-        return !hadConsent && hasConsentNow && request.status === "consent_pending";
+        return (
+          !hadConsent && hasConsentNow && request.status === "consent_pending"
+        );
       });
 
       if (newPendingRequests.length) {
@@ -151,7 +163,10 @@ function Admin() {
     initializedPendingDeviceRequestsRef.current = true;
   };
 
-  const fetchData = async ({ background = false, notifyRequestChanges = false } = {}) => {
+  const fetchData = async ({
+    background = false,
+    notifyRequestChanges = false,
+  } = {}) => {
     if (background && document.visibilityState === "hidden") return;
 
     if (background) {
@@ -168,12 +183,14 @@ function Admin() {
         assignmentsResponse,
         ticketsResponse,
         deviceRequestsResponse,
+        inventoryAssetsResponse,
       ] = await Promise.all([
         inventoryAPI.getDevices(),
         employeeAPI.getEmployees(),
         inventoryAPI.getAssignments(),
         inventoryAPI.getTickets(),
         inventoryAPI.getDeviceRequests(),
+        inventoryAPI.getInventoryAssets(),
       ]);
 
       let fetchedDevices = Array.isArray(devicesResponse.data)
@@ -229,13 +246,18 @@ function Admin() {
             request.id,
             Boolean(
               request.assignment_details?.consent_form_data &&
-                Object.keys(request.assignment_details.consent_form_data || {})
-                  .length,
+              Object.keys(request.assignment_details.consent_form_data || {})
+                .length,
             ),
           ]),
         );
         initializedPendingDeviceRequestsRef.current = true;
       }
+
+      let fetchedInventoryAssets = Array.isArray(inventoryAssetsResponse.data)
+        ? inventoryAssetsResponse.data
+        : inventoryAssetsResponse.data.results || [];
+      setInventoryAssets(fetchedInventoryAssets);
 
       setError(null);
     } catch (err) {
@@ -337,7 +359,10 @@ function Admin() {
         device_id: editedDevice.device_id,
         name:
           editedDevice.name ||
-          [editedDevice.brand, editedDevice.model].filter(Boolean).join(" ").trim(),
+          [editedDevice.brand, editedDevice.model]
+            .filter(Boolean)
+            .join(" ")
+            .trim(),
         device_type: editedDevice.device_type,
         brand: editedDevice.brand,
         model: editedDevice.model,
@@ -348,20 +373,23 @@ function Admin() {
         location: editedDevice.location || "",
         notes: editedDevice.notes || "",
       };
-      
+
       if (normalizedImageUrl) {
         deviceData.image_url = normalizedImageUrl;
       }
-      
-      const response = await inventoryAPI.updateDevice(editedDevice.id, deviceData);
-      
+
+      const response = await inventoryAPI.updateDevice(
+        editedDevice.id,
+        deviceData,
+      );
+
       setPopup({
         open: true,
         title: "Device Updated",
         message: "Device has been successfully updated.",
         type: "success",
       });
-      
+
       await fetchData({ background: true });
       return response.data;
     } catch (err) {
@@ -390,7 +418,8 @@ function Admin() {
       setPopup({
         open: true,
         title: "Assignment Revoked",
-        message: "The assignment was revoked and the device was returned to inventory.",
+        message:
+          "The assignment was revoked and the device was returned to inventory.",
         type: "success",
       });
     } catch (err) {
@@ -444,17 +473,26 @@ function Admin() {
   const assignmentsWithDetails = useMemo(() => {
     return assignments.map((assignment) => ({
       ...assignment,
-      device: devices.find((d) => d.id === assignment.device_id || d.id === assignment.device?.id),
-      employee: employees.find((e) => e.id === assignment.employee_id || e.id === assignment.employee),
+      device: devices.find(
+        (d) => d.id === assignment.device_id || d.id === assignment.device?.id,
+      ),
+      employee: employees.find(
+        (e) => e.id === assignment.employee_id || e.id === assignment.employee,
+      ),
     }));
   }, [assignments, devices, employees]);
 
   const getEmployeeForDevice = (deviceId) => {
     const assignment = assignments.find(
-      (a) => (a.device_id === deviceId || a.device?.id === deviceId) && a.status === "active",
+      (a) =>
+        (a.device_id === deviceId || a.device?.id === deviceId) &&
+        a.status === "active",
     );
     return assignment
-      ? employees.find((e) => e.id === assignment.employee_id || e.id === assignment.employee)
+      ? employees.find(
+          (e) =>
+            e.id === assignment.employee_id || e.id === assignment.employee,
+        )
       : undefined;
   };
 
@@ -464,17 +502,29 @@ function Admin() {
   );
 
   const pendingDeviceRequestCount = useMemo(
-    () => deviceRequests.filter((request) => request.status === "pending").length,
+    () =>
+      deviceRequests.filter((request) => request.status === "pending").length,
     [deviceRequests],
   );
 
   const tabs = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "devices", label: "Devices", icon: Package },
+    { id: "inventoryassets", label: "Inventory Assets", icon: Database },
     { id: "employees", label: "Employees", icon: Users },
     { id: "assignments", label: "Assignments", icon: FileText },
-    { id: "ticketrequests", label: "Ticket Requests", icon: Ticket, badge: pendingTicketCount },
-    { id: "devicerequests", label: "Device Requests", icon: Ticket, badge: pendingDeviceRequestCount },
+    {
+      id: "ticketrequests",
+      label: "Ticket Requests",
+      icon: Ticket,
+      badge: pendingTicketCount,
+    },
+    {
+      id: "devicerequests",
+      label: "Device Requests",
+      icon: Ticket,
+      badge: pendingDeviceRequestCount,
+    },
   ];
 
   return (
@@ -547,6 +597,31 @@ function Admin() {
             getEmployeeForDevice={getEmployeeForDevice}
             onAddDevice={handleAddDevice}
             onEditDevice={handleEditDevice}
+          />
+        )}
+
+        {activeTab === "inventoryassets" && (
+          <InventoryDashboard
+            assets={inventoryAssets}
+            onSendMail={async (id) => {
+              try {
+                await inventoryAPI.sendClaimMail(id);
+                fetchData({ background: true });
+              } catch (err) {
+                throw err;
+              }
+            }}
+            onUpdateEmail={async (id, email) => {
+              try {
+                await inventoryAPI.updateAssignedEmail(id, {
+                  assigned_email: email,
+                });
+                fetchData({ background: true });
+              } catch (err) {
+                throw err;
+              }
+            }}
+            loading={loading}
           />
         )}
 
