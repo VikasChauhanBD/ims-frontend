@@ -31,6 +31,8 @@ import {
 } from "../../assets/data/mockData";
 import "./Admin.css";
 
+const OCCUPIED_ASSET_STATUSES = new Set(["assigned", "pending_claim", "claimed"]);
+
 function Admin() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -439,13 +441,16 @@ function Admin() {
   };
 
   const stats = useMemo(() => {
-    const totalDevices = devices.length;
-    const assignedDevices = devices.filter(
-      (d) => d.status === "assigned",
-    ).length;
-    const availableDevices = devices.filter(
-      (d) => d.status === "available",
-    ).length;
+    const assetCount = inventoryAssets.length;
+    const totalDevices = devices.length + assetCount;
+    const assignedDevices =
+      devices.filter((d) => d.status === "assigned").length +
+      inventoryAssets.filter((asset) =>
+        OCCUPIED_ASSET_STATUSES.has(asset.status),
+      ).length;
+    const availableDevices =
+      devices.filter((d) => d.status === "available").length +
+      inventoryAssets.filter((asset) => asset.status === "available").length;
     const maintenanceDevices = devices.filter(
       (d) => d.status === "maintenance",
     ).length;
@@ -453,10 +458,12 @@ function Admin() {
     const activeEmployees = employees.filter(
       (e) => e.is_active === true,
     ).length;
-    const totalPhones = devices.filter((d) => d.device_type === "phone").length;
-    const totalLaptops = devices.filter(
-      (d) => d.device_type === "laptop",
-    ).length;
+    const totalPhones =
+      devices.filter((d) => d.device_type === "phone").length +
+      inventoryAssets.filter((asset) => asset.category === "mobile").length;
+    const totalLaptops =
+      devices.filter((d) => d.device_type === "laptop").length +
+      inventoryAssets.filter((asset) => asset.category === "laptop").length;
 
     return {
       totalDevices,
@@ -468,7 +475,7 @@ function Admin() {
       totalPhones,
       totalLaptops,
     };
-  }, [devices, employees]);
+  }, [devices, employees, inventoryAssets]);
 
   const assignmentsWithDetails = useMemo(() => {
     return assignments.map((assignment) => ({

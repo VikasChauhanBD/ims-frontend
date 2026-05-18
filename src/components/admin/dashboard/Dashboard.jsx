@@ -11,6 +11,11 @@ import {
 import StatCard from "./StatCard";
 import "./Dashboard.css";
 
+const getPercent = (value, total) => {
+  if (!total) return 0;
+  return Math.round((value / total) * 100);
+};
+
 export default function Dashboard({ stats }) {
   const navigate = useNavigate();
 
@@ -39,9 +44,7 @@ export default function Dashboard({ stats }) {
           icon={CheckCircle}
           color="text-green"
           bgColor="bg-green"
-          subtitle={`${Math.round(
-            (stats.assignedDevices / stats.totalDevices) * 100,
-          )}% Utilization`}
+          subtitle={`${getPercent(stats.assignedDevices, stats.totalDevices)}% Utilization`}
           onClick={() => navigate("/admin/assignments")}
         />
         {/* <StatCard
@@ -82,7 +85,7 @@ export default function Dashboard({ stats }) {
                 <div
                   className="progress-bar-blue"
                   style={{
-                    width: `${(stats.totalLaptops / stats.totalDevices) * 100}%`,
+                    width: `${getPercent(stats.totalLaptops, stats.totalDevices)}%`,
                   }}
                 ></div>
               </div>
@@ -101,7 +104,7 @@ export default function Dashboard({ stats }) {
                 <div
                   className="progress-bar-purple"
                   style={{
-                    width: `${(stats.totalPhones / stats.totalDevices) * 100}%`,
+                    width: `${getPercent(stats.totalPhones, stats.totalDevices)}%`,
                   }}
                 ></div>
               </div>
@@ -126,7 +129,7 @@ export default function Dashboard({ stats }) {
                 <div
                   className="progress-bar-green"
                   style={{
-                    width: `${(stats.assignedDevices / stats.totalDevices) * 100}%`,
+                    width: `${getPercent(stats.assignedDevices, stats.totalDevices)}%`,
                   }}
                 ></div>
               </div>
@@ -145,7 +148,7 @@ export default function Dashboard({ stats }) {
                 <div
                   className="progress-bar-teal"
                   style={{
-                    width: `${(stats.availableDevices / stats.totalDevices) * 100}%`,
+                    width: `${getPercent(stats.availableDevices, stats.totalDevices)}%`,
                   }}
                 ></div>
               </div>
@@ -164,7 +167,7 @@ export default function Dashboard({ stats }) {
                 <div
                   className="progress-bar-yellow"
                   style={{
-                    width: `${(stats.maintenanceDevices / stats.totalDevices) * 100}%`,
+                    width: `${getPercent(stats.maintenanceDevices, stats.totalDevices)}%`,
                   }}
                 ></div>
               </div>
