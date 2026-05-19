@@ -240,13 +240,16 @@ export default function UserDevicesView({
         <div className="user-devices-grid">
           {filteredDevices.map((device) => {
             const employee = getEmployeeForDevice(device.id);
+            const assignedTo =
+              device.assigned_to_name ||
+              employee?.full_name ||
+              employee?.name ||
+              employee?.email;
             return (
               <UserDeviceCard
                 key={device.id}
                 device={device}
-                assignedTo={
-                  employee?.full_name || employee?.name || employee?.email
-                }
+                assignedTo={assignedTo}
                 onAssign={onAssignDevice}
                 onTicketCreated={onTicketCreated}
               />

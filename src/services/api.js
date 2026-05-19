@@ -200,6 +200,10 @@ export const inventoryAPI = {
   // Inventory Assets (CSV imported)
   getInventoryAssets: (params) =>
     api.get("/inventory/inventory-assets/", { params: { page_size: 1000, ...params } }),
+  getInventoryCatalog: (params) =>
+    api.get("/inventory/inventory-assets/catalog/", {
+      params: { page_size: 1000, ...params },
+    }),
   getInventoryAsset: (id) => api.get(`/inventory/inventory-assets/${id}/`),
   sendClaimMail: (id) => api.post(`/inventory/inventory-assets/${id}/send_claim_mail/`),
   updateAssignedEmail: (id, data) =>

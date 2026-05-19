@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
   Package,
@@ -29,6 +29,45 @@ import { mockDevices, mockAssignments } from "../../assets/data/mockData";
 import { useAuth } from "../../AuthContext/AuthContext";
 import "./Receiver.css";
 
+const INVENTORY_ASSET_TYPE_MAP = {
+  laptop: "laptop",
+  pc: "pc",
+  mobile: "phone",
+  headphone: "headphone",
+  connector: "accessories",
+};
+
+const normalizeInventoryAssetForUserView = (asset) => {
+  const normalizedStatus =
+    asset.status === "available"
+      ? "available"
+      : asset.status === "retired"
+        ? "retired"
+        : "assigned";
+
+  return {
+    id: `inventory-asset-${asset.id}`,
+    source_id: asset.id,
+    inventory_source: "inventory_asset",
+    name: asset.asset_name,
+    device_id: asset.serial_number,
+    device_type: INVENTORY_ASSET_TYPE_MAP[asset.category] || "other",
+    brand: asset.metadata?.brand || asset.category_display || "Inventory",
+    model: asset.asset_name,
+    serial_number: asset.serial_number,
+    status: normalizedStatus,
+    status_label: asset.status_display || normalizedStatus,
+    condition: asset.condition || "good",
+    specifications: asset.metadata || {},
+    purchase_date: asset.purchase_date || null,
+    notes: asset.remarks || "",
+    image_url: "",
+    assigned_to_name: asset.assigned_user_name || null,
+    created_at: asset.created_at,
+    updated_at: asset.updated_at,
+  };
+};
+
 function Receiver() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,6 +78,7 @@ function Receiver() {
   const activeTab = rawActiveTab;
 
   const [devices, setDevices] = useState([]);
+  const [inventoryCatalog, setInventoryCatalog] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [deviceRequests, setDeviceRequests] = useState([]);
@@ -58,6 +98,13 @@ function Receiver() {
   const previousTicketsLengthRef = useRef(0);
   const previousRequestStatusesRef = useRef(new Map());
   const initializedRequestStatusesRef = useRef(false);
+  const userInventoryDevices = useMemo(
+    () => [
+      ...devices,
+      ...inventoryCatalog.map(normalizeInventoryAssetForUserView),
+    ],
+    [devices, inventoryCatalog],
+  );
 
   const maybeNotifyRequestStatusChanges = (fetchedRequests) => {
     if (!initializedRequestStatusesRef.current) return;
@@ -151,11 +198,13 @@ function Receiver() {
     try {
       const [
         devicesResponse,
+        inventoryCatalogResponse,
         assignmentsResponse,
         ticketsResponse,
         requestsResponse,
       ] = await Promise.all([
         inventoryAPI.getDevices(),
+        inventoryAPI.getInventoryCatalog(),
         inventoryAPI.getAssignments(),
         inventoryAPI.getMyTickets(),
         inventoryAPI.getMyDeviceRequests(),
@@ -169,6 +218,11 @@ function Receiver() {
         : devicesResponse.data.results || [];
       if (!fetchedDevices.length) fetchedDevices = mockDevices;
       setDevices(fetchedDevices);
+
+      const fetchedInventoryCatalog = Array.isArray(inventoryCatalogResponse.data)
+        ? inventoryCatalogResponse.data
+        : inventoryCatalogResponse.data.results || [];
+      setInventoryCatalog(fetchedInventoryCatalog);
 
       let fetchedAssigns = Array.isArray(assignmentsResponse.data)
         ? assignmentsResponse.data
@@ -394,7 +448,7 @@ function Receiver() {
 
         {activeTab === "devices" && (
           <UserDevicesView
-            devices={devices}
+            devices={userInventoryDevices}
             userEmail={currentUser?.email}
             getEmployeeForDevice={getEmployeeForDevice}
             onTicketCreated={() => loadDashboard({ background: true })}

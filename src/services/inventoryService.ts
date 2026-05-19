@@ -44,7 +44,7 @@ export const inventoryService = {
    */
   getMyInventory: (page: number = 1): Promise<PaginatedResponse<InventoryAsset>> => {
     return api
-      .get(`${INVENTORY_BASE}/my_inventory/`, { params: { page } })
+      .get(`${INVENTORY_BASE}/my_inventory/`, { params: { page, page_size: 1000 } })
       .then((res) => res.data);
   },
 

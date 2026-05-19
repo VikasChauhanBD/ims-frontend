@@ -29,12 +29,24 @@ export default function UserDeviceCard({
     type: "info",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const displayName =
+    [device.brand, device.model].filter(Boolean).join(" ").trim() ||
+    device.name ||
+    "Device";
+  const purchaseDateLabel = device.purchase_date
+    ? new Date(device.purchase_date).toLocaleDateString()
+    : "N/A";
+  const statusLabel =
+    device.status_label ||
+    (device.status.charAt(0).toUpperCase() + device.status.slice(1));
 
   const statusColors = {
     available: "status-available",
     assigned: "status-assigned",
     maintenance: "status-maintenance",
     retired: "status-retired",
+    pending_claim: "status-assigned",
+    claimed: "status-assigned",
   };
 
   const conditionColors = {
@@ -110,13 +122,13 @@ export default function UserDeviceCard({
           <div className="user-device-info">
             <div>
               <h3 className="user-device-name">
-                {device.brand} {device.model}
+                {displayName}
               </h3>
               <p className="user-device-serial">{device.serial_number}</p>
             </div>
           </div>
           <span className={`user-device-status ${statusColors[device.status]}`}>
-            {device.status.charAt(0).toUpperCase() + device.status.slice(1)}
+            {statusLabel}
           </span>
         </div>
 
@@ -124,7 +136,7 @@ export default function UserDeviceCard({
           <div className="detail-item">
             <Calendar className="detail-icon" />
             <span>
-              Purchased: {new Date(device.purchase_date).toLocaleDateString()}
+              Purchased: {purchaseDateLabel}
             </span>
           </div>
 
@@ -221,7 +233,7 @@ export default function UserDeviceCard({
                 </div>
                 <div className="detail-field">
                   <label>Purchase Date</label>
-                  <p>{new Date(device.purchase_date).toLocaleDateString()}</p>
+                  <p>{purchaseDateLabel}</p>
                 </div>
                 {device.specifications &&
                   Object.keys(device.specifications).length > 0 && (

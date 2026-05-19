@@ -335,13 +335,14 @@
 
 // src/pages/Signup.jsx
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../AuthContext/AuthContext';
 import './Signup.css';
 import AnimatedBackground from '../../components/animatedBackground/AnimatedBackground';
 
 const Signup = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signup } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -367,6 +368,31 @@ const Signup = () => {
     { value: 'Sales', label: 'Sales' },
     { value: 'Marketing', label: 'Marketing' },
   ];
+  const loginLinkTarget = (() => {
+    const nextPath =
+      location.state?.from ||
+      new URLSearchParams(location.search).get('next');
+    return nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : '/login';
+  })();
+
+  const getRedirectPath = () => {
+    const nextFromState = location.state?.from;
+    const nextFromQuery = new URLSearchParams(location.search).get('next');
+    const nextPath = nextFromState || nextFromQuery;
+
+    if (
+      nextPath &&
+      nextPath.startsWith('/') &&
+      !nextPath.startsWith('//') &&
+      !nextPath.startsWith('/login') &&
+      !nextPath.startsWith('/signup') &&
+      !nextPath.startsWith('/admin-login')
+    ) {
+      return nextPath;
+    }
+
+    return '/devices';
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -390,7 +416,7 @@ const Signup = () => {
     const result = await signup(formData);
 
     if (result.success) {
-      navigate('/dashboard', { replace: true });
+      navigate(getRedirectPath(), { replace: true });
     } else {
       setErrors(result.errors);
     }
@@ -646,7 +672,7 @@ const Signup = () => {
           <div className="signin-link">
             <p>
               Already have an account?{' '}
-              <Link to="/login" className="signin-link-text">
+              <Link to={loginLinkTarget} className="signin-link-text">
                 Sign in
               </Link>
             </p>

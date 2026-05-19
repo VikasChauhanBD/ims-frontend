@@ -141,7 +141,7 @@ const DeviceDetailsModal: React.FC<DeviceDetailsModalProps> = ({
               onClick={handleClaim}
               disabled={claiming}
             >
-              {claiming ? 'Processing...' : 'Claim Device'}
+              {claiming ? 'Processing...' : 'Accept Device'}
             </button>
           )}
         </div>
@@ -164,9 +164,9 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ asset, onViewDetails, onClaim }
     try {
       setClaiming(true);
       await onClaim(asset.id);
-      alert('Device claimed successfully!');
+      alert('Device accepted successfully!');
     } catch (err: any) {
-      alert('Failed to claim device: ' + (err.response?.data?.error || err.message));
+      alert('Failed to accept device: ' + (err.response?.data?.error || err.message));
     } finally {
       setClaiming(false);
     }
@@ -253,7 +253,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ asset, onViewDetails, onClaim }
             onClick={handleClaim}
             disabled={claiming}
           >
-            {claiming ? 'Claiming...' : 'Claim Now'}
+            {claiming ? 'Processing...' : 'Accept Now'}
           </button>
         )}
       </div>
@@ -262,6 +262,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({ asset, onViewDetails, onClaim }
 };
 
 const MyInventoryPage: React.FC = () => {
+  const pageSize = 1000;
   const [assets, setAssets] = useState<InventoryAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -347,7 +348,7 @@ const MyInventoryPage: React.FC = () => {
       <div className="page-header">
         <div className="header-content">
           <h1>My Inventory</h1>
-          <p className="subtitle">Devices assigned to you</p>
+          <p className="subtitle">Review the devices assigned to you and accept them here</p>
         </div>
         <div className="header-actions">
           <button className="btn btn-secondary" title="Download inventory">
@@ -414,7 +415,7 @@ const MyInventoryPage: React.FC = () => {
         </div>
       )}
 
-      {pagination.count > 20 && (
+      {pagination.count > pageSize && (
         <div className="pagination">
           <button
             className="btn btn-secondary"
@@ -424,7 +425,7 @@ const MyInventoryPage: React.FC = () => {
             Previous
           </button>
           <span className="page-info">
-            Page {page} of {Math.ceil(pagination.count / 20)}
+            Page {page} of {Math.ceil(pagination.count / pageSize)}
           </span>
           <button
             className="btn btn-secondary"

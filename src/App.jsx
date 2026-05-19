@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./AuthContext/AuthContext";
 import Login from "./pages/loginPage/Login";
 import Signup from "./pages/signupPage/Signup";
@@ -30,15 +30,50 @@ import "./App.css";
 //   return children;
 // }
 
+const getRequestedPath = (location) => {
+  const nextFromState = location.state?.from;
+  const nextFromQuery = new URLSearchParams(location.search).get("next");
+  const nextPath = nextFromState || nextFromQuery;
+
+  if (
+    nextPath &&
+    nextPath.startsWith("/") &&
+    !nextPath.startsWith("//") &&
+    !nextPath.startsWith("/login") &&
+    !nextPath.startsWith("/signup") &&
+    !nextPath.startsWith("/admin-login")
+  ) {
+    return nextPath;
+  }
+
+  return null;
+};
+
+const buildAuthRedirect = (location, authPath) => {
+  const from = `${location.pathname}${location.search}`;
+  const next = encodeURIComponent(from);
+  return {
+    pathname: authPath,
+    search: `?next=${next}`,
+  };
+};
+
 function ProtectedRoute({ children, adminOnly = false }) {
   const { isAuthenticated, user, loading } = useAuth(); // ✅ FIX
+  const location = useLocation();
 
   if (loading) {
     return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
   }
 
   if (!isAuthenticated) {
-    return <Navigate to={adminOnly ? "/admin-login" : "/login"} />;
+    return (
+      <Navigate
+        to={buildAuthRedirect(location, adminOnly ? "/admin-login" : "/login")}
+        state={{ from: `${location.pathname}${location.search}` }}
+        replace
+      />
+    );
   }
 
   if (adminOnly && user?.role !== "admin") {
@@ -51,9 +86,18 @@ function ProtectedRoute({ children, adminOnly = false }) {
 // User-only Route (authenticated, non-admin users only)
 function UserOnlyRoute({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
+  const location = useLocation();
   if (loading)
     return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
-  if (!isAuthenticated) return <Navigate to="/login" />;
+  if (!isAuthenticated) {
+    return (
+      <Navigate
+        to={buildAuthRedirect(location, "/login")}
+        state={{ from: `${location.pathname}${location.search}` }}
+        replace
+      />
+    );
+  }
   if (user?.role === "admin") return <Navigate to="/admin/profile" />;
   return children;
 }
@@ -61,9 +105,18 @@ function UserOnlyRoute({ children }) {
 // Admin-only Route (authenticated, admin users only)
 function AdminOnlyRoute({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
+  const location = useLocation();
   if (loading)
     return <LoadingSpinner fullScreen={true} message="Authenticating..." />;
-  if (!isAuthenticated) return <Navigate to="/admin-login" />;
+  if (!isAuthenticated) {
+    return (
+      <Navigate
+        to={buildAuthRedirect(location, "/admin-login")}
+        state={{ from: `${location.pathname}${location.search}` }}
+        replace
+      />
+    );
+  }
   if (user?.role !== "admin") return <Navigate to="/profile" />;
   return children;
 }
@@ -71,12 +124,17 @@ function AdminOnlyRoute({ children }) {
 // Public Route (redirect if logged in)
 function PublicRoute({ children }) {
   const { isAuthenticated, loading, user } = useAuth();
+  const location = useLocation();
 
   if (loading) return <LoadingSpinner fullScreen message="Authenticating..." />;
 
   if (!isAuthenticated) return children;
 
-  // ✅ FIX: redirect based on role
+  const requestedPath = getRequestedPath(location);
+  if (requestedPath) {
+    return <Navigate to={requestedPath} replace />;
+  }
+
   if (user?.role === "admin") {
     return <Navigate to="/admin/dashboard" replace />;
   }

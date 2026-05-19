@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../AuthContext/AuthContext";
 import "./Login.css";
 import AnimatedBackground from "../../components/animatedBackground/AnimatedBackground";
@@ -7,6 +7,7 @@ import EmailVerificationPopup from "../../components/common/EmailVerification";
 
 const Login = ({ adminMode = false }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -18,6 +19,25 @@ const Login = ({ adminMode = false }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
+
+  const getRedirectPath = (employee) => {
+    const nextFromState = location.state?.from;
+    const nextFromQuery = new URLSearchParams(location.search).get("next");
+    const nextPath = nextFromState || nextFromQuery;
+
+    if (
+      nextPath &&
+      nextPath.startsWith("/") &&
+      !nextPath.startsWith("//") &&
+      !nextPath.startsWith("/login") &&
+      !nextPath.startsWith("/signup") &&
+      !nextPath.startsWith("/admin-login")
+    ) {
+      return nextPath;
+    }
+
+    return employee?.role === "admin" ? "/admin/dashboard" : "/devices";
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -50,9 +70,7 @@ const Login = ({ adminMode = false }) => {
         setPendingEmail(result.data?.email || "");
         setShowEmailVerification(true);
       } else {
-        // Email already verified, redirect
-        const redirectPath = result.data?.role === 'admin' ? '/admin/dashboard' : '/devices';
-        navigate(redirectPath, { replace: true });
+        navigate(getRedirectPath(result.data), { replace: true });
       }
     } else {
       setErrors(result.errors);
@@ -63,9 +81,7 @@ const Login = ({ adminMode = false }) => {
 
   const handleEmailVerified = (employee) => {
     setShowEmailVerification(false);
-    // Redirect based on role
-    const redirectPath = employee?.role === 'admin' ? '/admin/dashboard' : '/devices';
-    navigate(redirectPath, { replace: true });
+    navigate(getRedirectPath(employee), { replace: true });
   };
 
   const title = adminMode ? "Admin Access" : "Welcome Back";
@@ -75,6 +91,11 @@ const Login = ({ adminMode = false }) => {
   const submitLabel = adminMode ? "Admin Sign In" : "Sign In";
   const switchLinkPath = adminMode ? "/login" : "/admin-login";
   const switchLinkLabel = adminMode ? "Employee sign in" : "Admin sign in";
+  const signupLinkTarget = (() => {
+    const nextPath =
+      location.state?.from || new URLSearchParams(location.search).get("next");
+    return nextPath ? `/signup?next=${encodeURIComponent(nextPath)}` : "/signup";
+  })();
 
   return (
     <div className="login-container">
@@ -272,7 +293,7 @@ const Login = ({ adminMode = false }) => {
             <div className="signup-prompt">
               <p className="signup-text">
                 Don't have an account?{" "}
-                <Link to="/signup" className="signup-link">
+                <Link to={signupLinkTarget} className="signup-link">
                   Sign up now
                 </Link>
               </p>
