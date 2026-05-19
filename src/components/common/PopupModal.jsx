@@ -1,7 +1,15 @@
 import React from "react";
 import "./PopupModal.css";
 
-const PopupModal = ({ open, title, message, type = "info", actions = [], onClose }) => {
+const PopupModal = ({
+  open,
+  title,
+  message,
+  type = "info",
+  actions = [],
+  customContent = null,
+  onClose,
+}) => {
   if (!open) return null;
 
   return (
@@ -11,7 +19,8 @@ const PopupModal = ({ open, title, message, type = "info", actions = [], onClose
           <h3>{title}</h3>
         </div>
         <div className="popup-modal-body">
-          <p>{message}</p>
+          {message ? <p>{message}</p> : null}
+          {customContent}
         </div>
         <div className="popup-modal-actions">
           {actions.map((action, index) => (

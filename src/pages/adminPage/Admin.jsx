@@ -7,6 +7,7 @@ import {
   FileText,
   Ticket,
   Database,
+  CheckCircle,
 } from "lucide-react";
 import Navbar from "../../components/navbar/Navbar";
 import Dashboard from "../../components/admin/dashboard/Dashboard";
@@ -130,7 +131,7 @@ function Admin() {
             {
               label: "Open Device Requests",
               onClick: () => {
-                navigate("/admin/devicerequests");
+                navigate("/admin/approvals");
                 setPopup((prev) => ({ ...prev, open: false }));
               },
             },
@@ -151,7 +152,7 @@ function Admin() {
             {
               label: "Open Device Requests",
               onClick: () => {
-                navigate("/admin/devicerequests");
+                navigate("/admin/approvals");
                 setPopup((prev) => ({ ...prev, open: false }));
               },
             },
@@ -527,9 +528,9 @@ function Admin() {
       badge: pendingTicketCount,
     },
     {
-      id: "devicerequests",
-      label: "Device Requests",
-      icon: Ticket,
+      id: "approvals",
+      label: "Approvals / Reject",
+      icon: CheckCircle,
       badge: pendingDeviceRequestCount,
     },
   ];
@@ -656,12 +657,14 @@ function Admin() {
           />
         )}
 
-        {activeTab === "devicerequests" && (
+        {(activeTab === "approvals" || activeTab === "devicerequests") && (
           <DeviceRequestsView
             requests={deviceRequests}
             setRequests={setDeviceRequests}
             employees={employees}
             onRefresh={() => fetchData({ background: true })}
+            title="Approvals / Reject"
+            subtitle="Upload latest device images, request consent, verify submissions, and complete grants"
           />
         )}
       </div>

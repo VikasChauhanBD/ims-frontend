@@ -186,13 +186,16 @@ export const inventoryAPI = {
   getDeviceRequest: (id) => api.get(`/inventory/device-requests/${id}/`),
   createDeviceRequest: (data) => api.post("/inventory/device-requests/", data),
   deleteDeviceRequest: (id) => api.delete(`/inventory/device-requests/${id}/`),
-  grantDeviceRequest: (id) => api.post(`/inventory/device-requests/${id}/approve/`),
+  grantDeviceRequest: (id, data = {}) =>
+    api.post(`/inventory/device-requests/${id}/approve/`, data),
   approveDeviceRequest: (id) => api.post(`/inventory/device-requests/${id}/grant/`),
   rejectDeviceRequest: (id, reason) =>
     api.post(`/inventory/device-requests/${id}/reject/`, { reason }),
   revokeDeviceRequest: (id, reason) =>
     api.post(`/inventory/device-requests/${id}/revoke/`, { reason }),
   getMyDeviceRequests: () => api.get("/inventory/device-requests/"),
+  updateAssignmentCycleImages: (id, data) =>
+    api.patch(`/inventory/assignments/${id}/update_cycle_images/`, data),
 
   // Inventory Assets (CSV imported)
   getInventoryAssets: (params) =>

@@ -42,6 +42,9 @@ export default function ConsentForm({
     assignment?.device?.device_id ||
     assignment?.device_id ||
     "";
+  const cycleImages = Array.isArray(assignment?.cycle_images)
+    ? assignment.cycle_images
+    : [];
 
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -344,6 +347,31 @@ export default function ConsentForm({
                   rows="3"
                 />
               </div>
+
+              {cycleImages.length > 0 && (
+                <div className="consent-reference-images">
+                  <div className="consent-reference-head">
+                    <h4>Latest device images</h4>
+                    <p>
+                      Review the admin-shared device photos before confirming the
+                      condition below.
+                    </p>
+                  </div>
+                  <div className="consent-reference-grid">
+                    {cycleImages.map((imageUrl, index) => (
+                      <a
+                        key={`${assignment?.id || "assignment"}-${index}`}
+                        href={imageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="consent-reference-card"
+                      >
+                        <img src={imageUrl} alt={`Reference ${index + 1}`} />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

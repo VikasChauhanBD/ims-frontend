@@ -439,6 +439,11 @@ const RequestHistory = ({
         Object.keys(request.assignment_details.consent_form_data || {}).length > 0,
     );
 
+  const getCycleImages = (request) =>
+    Array.isArray(request?.assignment_details?.cycle_images)
+      ? request.assignment_details.cycle_images
+      : [];
+
   return (
     <>
     <div className="rh-section-header">
@@ -635,13 +640,22 @@ const RequestHistory = ({
                         ).toLocaleString()}
                       </small>
                     </div>
+                  ) : getCycleImages(request).length === 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <button className="rh-consent-btn" disabled>
+                        Waiting for Device Images
+                      </button>
+                      <small style={{ color: "#6b7280" }}>
+                        Admin will add the latest device photos before consent.
+                      </small>
+                    </div>
                   ) : (
-                <button
-                  className="rh-consent-btn"
-                  onClick={() => openConsentForm(request)}
-                  disabled={openingConsentRequestId === request.id}
-                >
-                  {openingConsentRequestId === request.id
+                    <button
+                      className="rh-consent-btn"
+                      onClick={() => openConsentForm(request)}
+                      disabled={openingConsentRequestId === request.id}
+                    >
+                      {openingConsentRequestId === request.id
                         ? "Opening..."
                         : "Fill Consent →"}
                     </button>
@@ -657,6 +671,28 @@ const RequestHistory = ({
                 <span className="rh-notes-text">
                   {request.reason}
                 </span>
+              </div>
+            )}
+
+            {getCycleImages(request).length > 0 && (
+              <div className="rh-images-panel">
+                <div className="rh-images-head">
+                  <strong>Images</strong>
+                  <span>Latest device photos shared by admin for this request cycle</span>
+                </div>
+                <div className="rh-images-grid">
+                  {getCycleImages(request).map((imageUrl, index) => (
+                    <a
+                      key={`${request.id}-cycle-${index}`}
+                      href={imageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rh-image-card"
+                    >
+                      <img src={imageUrl} alt={`Device ${index + 1}`} />
+                    </a>
+                  ))}
+                </div>
               </div>
             )}
           </div>
