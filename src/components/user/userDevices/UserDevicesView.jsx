@@ -51,7 +51,10 @@ const CATEGORY_CARDS = [
   },
 ];
 
-const normalizeText = (value) => String(value || "").trim().toLowerCase();
+const normalizeText = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
 
 const getDeviceSearchText = (device = {}) => {
   const specifications = device.specifications || {};
@@ -141,6 +144,14 @@ export default function UserDevicesView({
     return matchesSearch && matchesStatus && matchesSelectedCategory;
   });
 
+  // Separate devices into available and assigned sections
+  const availableDevices = filteredDevices.filter(
+    (device) => device.status === "available",
+  );
+  const assignedDevices = filteredDevices.filter(
+    (device) => device.status !== "available",
+  );
+
   return (
     <div className="user-devices-main-container">
       <div className="user-devices-header">
@@ -228,7 +239,9 @@ export default function UserDevicesView({
           </p>
         </div>
         <span className="user-device-active-status">
-          {formatStatusLabel(filterStatus === "all" ? "all statuses" : filterStatus)}
+          {formatStatusLabel(
+            filterStatus === "all" ? "all statuses" : filterStatus,
+          )}
         </span>
       </div>
 
@@ -237,31 +250,67 @@ export default function UserDevicesView({
           <p>No devices found in this category with the current filters.</p>
         </div>
       ) : (
-        <div className="user-devices-grid">
-          {filteredDevices.map((device) => {
-            const employee = getEmployeeForDevice(device.id);
-            const assignedTo =
-              device.assigned_to_name ||
-              employee?.full_name ||
-              employee?.name ||
-              employee?.email;
-            return (
-              <UserDeviceCard
-                key={device.id}
-                device={device}
-                assignedTo={assignedTo}
-                onAssign={onAssignDevice}
-                onTicketCreated={onTicketCreated}
-              />
-            );
-          })}
-        </div>
+        <>
+          {/* Available Devices Section */}
+          {availableDevices.length > 0 && (
+            <div className="user-device-section">
+              <h2 className="user-device-section-title">Available Devices</h2>
+              <div className="responsive-devices-grid">
+                {availableDevices.map((device) => {
+                  const employee = getEmployeeForDevice(device.id);
+                  const assignedTo =
+                    device.assigned_to_name ||
+                    employee?.full_name ||
+                    employee?.name ||
+                    employee?.email;
+                  return (
+                    <UserDeviceCard
+                      key={device.id}
+                      device={device}
+                      assignedTo={assignedTo}
+                      onAssign={onAssignDevice}
+                      onTicketCreated={onTicketCreated}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Assigned Devices Section */}
+          {assignedDevices.length > 0 && (
+            <div className="user-device-section">
+              <h2 className="user-device-section-title">Assigned Devices</h2>
+              <div className="responsive-devices-grid">
+                {assignedDevices.map((device) => {
+                  const employee = getEmployeeForDevice(device.id);
+                  const assignedTo =
+                    device.assigned_to_name ||
+                    employee?.full_name ||
+                    employee?.name ||
+                    employee?.email;
+                  return (
+                    <UserDeviceCard
+                      key={device.id}
+                      device={device}
+                      assignedTo={assignedTo}
+                      onAssign={onAssignDevice}
+                      onTicketCreated={onTicketCreated}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <div className="user-devices-footer">
         <p>
-          Showing {filteredDevices.length} of {selectedCategory.totalCount}{" "}
-          {selectedCategory.label.toLowerCase()} item
+          Available: {availableDevices.length} | Assigned:{" "}
+          {assignedDevices.length} | Total: {filteredDevices.length} of{" "}
+          {selectedCategory.totalCount} {selectedCategory.label.toLowerCase()}{" "}
+          item
           {selectedCategory.totalCount === 1 ? "" : "s"}
         </p>
       </div>

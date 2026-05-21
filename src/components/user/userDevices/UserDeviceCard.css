@@ -4,9 +4,14 @@
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 15px;
-  padding: 1rem;
+  padding: 1.2rem;
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
   transition: all 0.3s ease;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .user-device-card:hover {
@@ -16,10 +21,11 @@
 
 .user-device-image {
   width: 100%;
+  height: 180px;
   overflow: hidden;
   border-radius: 12px;
-  /* height: 160px;ADD THIS */
-  /* background: #f3f4f6; */
+  background: #f3f4f6;
+  margin-bottom: 0.8rem;
 }
 
 .user-device-image img {
@@ -37,11 +43,10 @@
 .user-device-card-header {
   display: flex;
   justify-content: space-between;
-    align-items: center;
-    /* CHANGE from "start" to "center" */
-    margin: 1rem 0;
-    gap: 0.5rem;
-    /* ADD THIS */
+  align-items: flex-start;
+  margin: 0 0 1rem 0;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .user-device-info {
@@ -66,20 +71,25 @@
 }
 
 .user-device-name {
-  font-weight: 600;
+  font-weight: 700;
   color: #111827;
+  font-size: 1rem;
+  margin: 0;
+  line-height: 1.3;
 }
 
 .user-device-serial {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: #6b7280;
-}
-
-.user-device-status {
-    white-space: nowrap;
-    flex-shrink: 0;
-  padding: 0.25rem 0.75rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 0.35rem 0.6rem;
   border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  text-transform: capitalize
   font-size: 14px;
   font-weight: 500;
   backdrop-filter: blur(5px);
@@ -112,18 +122,20 @@
 
 .user-device-details {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  flex-di7rem;
   margin-bottom: 1rem;
-align-items: flex-start;
+  align-items: flex-start;
+  flex-grow: 1;
 }
 
 .detail-item {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.9rem;
   color: #4b5563;
+  width: 100%;
+  line-height: 1.4b5563;
 width: 100%;
 }
 
@@ -157,12 +169,14 @@ width: 100%;
   font-weight: 500;
   color: #111827;
 }
-
-.user-device-notes {
-  font-size: 0.875rem;
+5rem;
   color: #4b5563;
   margin-bottom: 1rem;
   display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.4-box;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -170,6 +184,7 @@ width: 100%;
 .user-device-actions {
   display: flex;
   gap: 0.5rem;
+  margin-top: auto;
   border-top: 2px solid rgba(175, 175, 175, 0.5);
   padding-top: 1rem;
 }
