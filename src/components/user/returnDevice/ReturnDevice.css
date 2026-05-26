@@ -104,6 +104,43 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
+.return-device-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.return-device-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.return-device-label span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.return-device-reason {
+  min-height: 80px;
+  border-radius: 12px;
+  border: 1px solid #dbeafe;
+  padding: 0.8rem 0.9rem;
+  resize: vertical;
+  font: inherit;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+.return-device-reason:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
 .return-device-btn {
   border: none;
   border-radius: 12px;

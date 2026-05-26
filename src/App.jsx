@@ -245,6 +245,7 @@ function App() {
             <Route path="assignments" element={null} />
             <Route path="ticketrequests" element={null} />
             <Route path="approvals" element={null} />
+            <Route path="return-device" element={null} />
             <Route path="devicerequests" element={null} />
             <Route
               path="assigned-inventory"

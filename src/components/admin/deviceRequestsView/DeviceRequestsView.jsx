@@ -39,9 +39,13 @@ export default function DeviceRequestsView({
 
   const getDeviceSummary = (request) => {
     if (!request) return "N/A";
-    const assignmentDeviceName = request.assignment_details?.device_details?.name;
+    const assignmentDeviceName =
+      request.assignment_details?.device_details?.name;
     if (assignmentDeviceName) return assignmentDeviceName;
-    return `${request.brand || ""} ${request.model || ""}`.trim() || "Requested Device";
+    return (
+      `${request.brand || ""} ${request.model || ""}`.trim() ||
+      "Requested Device"
+    );
   };
 
   const getRequesterName = (request) => {
@@ -240,7 +244,8 @@ export default function DeviceRequestsView({
       setPopup({
         open: true,
         title: "Images Saved",
-        message: "The latest device images were updated for this request cycle.",
+        message:
+          "The latest device images were updated for this request cycle.",
         type: "success",
       });
     } catch (err) {
@@ -340,7 +345,8 @@ export default function DeviceRequestsView({
       setPopup({
         open: true,
         title: "Return Approved",
-        message: "The device return has been approved and the cycle is complete.",
+        message:
+          "The device return has been approved and the cycle is complete.",
         type: "success",
       });
     } catch (err) {
@@ -362,6 +368,117 @@ export default function DeviceRequestsView({
     }
   };
 
+  const handleApproveReturnRequest = async (assignmentId, requestId) => {
+    setProcessingRequestId(requestId);
+    setProcessingAction("approve_return_request");
+
+    try {
+      const response = await inventoryAPI.approveReturnRequest(assignmentId);
+      const updatedAssignment = response.data?.assignment;
+
+      setRequests((prev) =>
+        prev.map((req) =>
+          req.id === requestId
+            ? {
+                ...req,
+                assignment_details: updatedAssignment || req.assignment_details,
+                status: "returned",
+              }
+            : req,
+        ),
+      );
+
+      if (onRefresh) {
+        await onRefresh();
+      }
+
+      setPopup({
+        open: true,
+        title: "Return Accepted",
+        message:
+          "The device return has been accepted and the user has been notified.",
+        type: "success",
+      });
+    } catch (err) {
+      console.error("Failed to approve return request", err);
+      const serverMessage =
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
+        err.message ||
+        "Unable to approve return request";
+      setPopup({
+        open: true,
+        title: "Approval Failed",
+        message: serverMessage,
+        type: "error",
+      });
+    } finally {
+      setProcessingRequestId(null);
+      setProcessingAction(null);
+    }
+  };
+
+  const handleRejectReturnRequest = async () => {
+    const { requestId } = rejectReasonModal;
+    if (!requestId) return;
+
+    const request = requests.find((r) => r.id === requestId);
+    if (!request || !request.assignment_details) return;
+
+    setProcessingRequestId(requestId);
+    setProcessingAction("reject_return_request");
+
+    try {
+      const response = await inventoryAPI.rejectReturnRequest(
+        request.assignment_details.id,
+        rejectReason || "Not specified",
+      );
+      const updatedAssignment = response.data?.assignment;
+
+      setRequests((prev) =>
+        prev.map((req) =>
+          req.id === requestId
+            ? {
+                ...req,
+                assignment_details: updatedAssignment || req.assignment_details,
+              }
+            : req,
+        ),
+      );
+
+      setRejectReasonModal({ open: false, requestId: null });
+      setRejectReason("");
+
+      if (onRefresh) {
+        await onRefresh();
+      }
+
+      setPopup({
+        open: true,
+        title: "Return Rejected",
+        message:
+          "The device return has been rejected and the user has been notified.",
+        type: "info",
+      });
+    } catch (err) {
+      console.error("Failed to reject return request", err);
+      const serverMessage =
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
+        err.message ||
+        "Unable to reject return request";
+      setPopup({
+        open: true,
+        title: "Rejection Failed",
+        message: serverMessage,
+        type: "error",
+      });
+    } finally {
+      setProcessingRequestId(null);
+      setProcessingAction(null);
+    }
+  };
+
   const handleRejectClick = (requestId) => {
     setRejectReasonModal({ open: true, requestId });
   };
@@ -370,6 +487,15 @@ export default function DeviceRequestsView({
     const { requestId } = rejectReasonModal;
     if (!requestId) return;
 
+    const request = requests.find((r) => r.id === requestId);
+
+    // Check if this is a return request rejection
+    if (request?.assignment_details?.return_request_pending) {
+      await handleRejectReturnRequest();
+      return;
+    }
+
+    // Otherwise, handle regular device request rejection
     setProcessingRequestId(requestId);
     setProcessingAction("revoke");
 
@@ -381,11 +507,12 @@ export default function DeviceRequestsView({
 
       setRequests((prev) =>
         prev.map((req) =>
-          req.id === requestId
-            ? { ...req, status: "rejected" }
-            : req,
+          req.id === requestId ? { ...req, status: "rejected" } : req,
         ),
       );
+
+      setRejectReasonModal({ open: false, requestId: null });
+      setRejectReason("");
 
       if (onRefresh) {
         await onRefresh();
@@ -453,7 +580,9 @@ export default function DeviceRequestsView({
                 onClick={() => toggleExpanded(request.id)}
               >
                 <div className="device-request-title-section">
-                  <div className={`device-request-status-badge status-${statusClass}`}>
+                  <div
+                    className={`device-request-status-badge status-${statusClass}`}
+                  >
                     {statusClass.charAt(0).toUpperCase() +
                       statusClass.slice(1).replace(/_/g, " ")}
                   </div>
@@ -467,25 +596,39 @@ export default function DeviceRequestsView({
                   </div>
                 </div>
                 <button className="device-request-toggle">
-                  {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  {isExpanded ? (
+                    <ChevronUp size={20} />
+                  ) : (
+                    <ChevronDown size={20} />
+                  )}
                 </button>
               </div>
 
               {isExpanded && (
                 <div className="device-request-content">
                   <div className="device-request-section">
-                    <h4 className="device-request-section-title">Request Details</h4>
+                    <h4 className="device-request-section-title">
+                      Request Details
+                    </h4>
                     <div className="device-request-details-grid">
                       <div className="device-request-detail-item">
-                        <span className="device-request-label">Device Type</span>
-                        <span className="device-request-value">{request.device_type}</span>
+                        <span className="device-request-label">
+                          Device Type
+                        </span>
+                        <span className="device-request-value">
+                          {request.device_type}
+                        </span>
                       </div>
                       <div className="device-request-detail-item">
                         <span className="device-request-label">Reason</span>
-                        <span className="device-request-value">{request.reason}</span>
+                        <span className="device-request-value">
+                          {request.reason}
+                        </span>
                       </div>
                       <div className="device-request-detail-item">
-                        <span className="device-request-label">Requested Date</span>
+                        <span className="device-request-label">
+                          Requested Date
+                        </span>
                         <span className="device-request-value">
                           {request.created_at
                             ? new Date(request.created_at).toLocaleDateString()
@@ -499,8 +642,8 @@ export default function DeviceRequestsView({
                     <h4 className="device-request-section-title">Images</h4>
                     <div className="device-request-images-panel">
                       <p className="device-request-images-help">
-                        Add the latest device photos for this request cycle before
-                        asking the employee to fill the consent form.
+                        Add the latest device photos for this request cycle
+                        before asking the employee to fill the consent form.
                       </p>
 
                       {canEditCycleImages && (
@@ -541,7 +684,10 @@ export default function DeviceRequestsView({
                       {cycleImages.length > 0 ? (
                         <div className="device-request-images-grid">
                           {cycleImages.map((imageUrl, idx) => (
-                            <div key={`${request.id}-${idx}`} className="device-request-image-card">
+                            <div
+                              key={`${request.id}-${idx}`}
+                              className="device-request-image-card"
+                            >
                               <a
                                 href={imageUrl}
                                 target="_blank"
@@ -553,7 +699,9 @@ export default function DeviceRequestsView({
                               {canEditCycleImages && (
                                 <button
                                   className="device-request-remove-image"
-                                  onClick={() => handleRemoveCycleImage(request, idx)}
+                                  onClick={() =>
+                                    handleRemoveCycleImage(request, idx)
+                                  }
                                   type="button"
                                 >
                                   Remove
@@ -575,41 +723,64 @@ export default function DeviceRequestsView({
                       request.assignment_details.consent_form_data || {},
                     ).length > 0 && (
                       <div className="device-request-section">
-                        <h4 className="device-request-section-title">Consent Form</h4>
+                        <h4 className="device-request-section-title">
+                          Consent Form
+                        </h4>
                         <div className="device-request-consent-details">
                           <div className="device-request-consent-item">
-                            <span className="device-request-label">Employee Name</span>
+                            <span className="device-request-label">
+                              Employee Name
+                            </span>
                             <span className="device-request-value">
-                              {request.assignment_details.consent_form_data.employee_name}
+                              {
+                                request.assignment_details.consent_form_data
+                                  .employee_name
+                              }
                             </span>
                           </div>
                           <div className="device-request-consent-item">
                             <span className="device-request-label">Device</span>
                             <span className="device-request-value">
-                              {request.assignment_details.consent_form_data.device_name}
+                              {
+                                request.assignment_details.consent_form_data
+                                  .device_name
+                              }
                             </span>
                           </div>
                           <div className="device-request-consent-item">
-                            <span className="device-request-label">Device Condition</span>
+                            <span className="device-request-label">
+                              Device Condition
+                            </span>
                             <span className="device-request-value">
-                              {request.assignment_details.consent_form_data.condition}
+                              {
+                                request.assignment_details.consent_form_data
+                                  .condition
+                              }
                             </span>
                           </div>
                           <div className="device-request-consent-item">
-                            <span className="device-request-label">Received Date</span>
+                            <span className="device-request-label">
+                              Received Date
+                            </span>
                             <span className="device-request-value">
-                              {request.assignment_details.consent_form_data.received_date}
+                              {
+                                request.assignment_details.consent_form_data
+                                  .received_date
+                              }
                             </span>
                           </div>
                           <div className="device-request-consent-item">
-                            <span className="device-request-label">Accessories</span>
+                            <span className="device-request-label">
+                              Accessories
+                            </span>
                             <span className="device-request-value">
-                              {request.assignment_details.consent_form_data.accessories ||
-                                "None"}
+                              {request.assignment_details.consent_form_data
+                                .accessories || "None"}
                             </span>
                           </div>
 
-                          {request.assignment_details.consent_images?.length > 0 && (
+                          {request.assignment_details.consent_images?.length >
+                            0 && (
                             <div className="device-request-consent-images">
                               <span className="device-request-label">
                                 User Uploaded Photos
@@ -624,7 +795,10 @@ export default function DeviceRequestsView({
                                       rel="noopener noreferrer"
                                       className="device-request-image-thumbnail"
                                     >
-                                      <img src={imageUrl} alt={`Photo ${idx + 1}`} />
+                                      <img
+                                        src={imageUrl}
+                                        alt={`Photo ${idx + 1}`}
+                                      />
                                     </a>
                                   ),
                                 )}
@@ -640,12 +814,19 @@ export default function DeviceRequestsView({
                       request.assignment_details.return_form_data || {},
                     ).length > 0 && (
                       <div className="device-request-section">
-                        <h4 className="device-request-section-title">Return Form</h4>
+                        <h4 className="device-request-section-title">
+                          Return Form
+                        </h4>
                         <div className="device-request-return-details">
                           <div className="device-request-return-item">
-                            <span className="device-request-label">Return Date</span>
+                            <span className="device-request-label">
+                              Return Date
+                            </span>
                             <span className="device-request-value">
-                              {request.assignment_details.return_form_data.return_date}
+                              {
+                                request.assignment_details.return_form_data
+                                  .return_date
+                              }
                             </span>
                           </div>
                           <div className="device-request-return-item">
@@ -653,7 +834,10 @@ export default function DeviceRequestsView({
                               Device Condition at Return
                             </span>
                             <span className="device-request-value">
-                              {request.assignment_details.return_form_data.condition}
+                              {
+                                request.assignment_details.return_form_data
+                                  .condition
+                              }
                             </span>
                           </div>
                           <div className="device-request-return-item">
@@ -661,18 +845,66 @@ export default function DeviceRequestsView({
                               Accessories Returned
                             </span>
                             <span className="device-request-value">
-                              {request.assignment_details.return_form_data.accessories ||
-                                "None"}
+                              {request.assignment_details.return_form_data
+                                .accessories || "None"}
                             </span>
                           </div>
-                          {request.assignment_details.return_form_data.remarks && (
+                          {request.assignment_details.return_form_data
+                            .remarks && (
                             <div className="device-request-return-item">
-                              <span className="device-request-label">Remarks</span>
+                              <span className="device-request-label">
+                                Remarks
+                              </span>
                               <span className="device-request-value">
-                                {request.assignment_details.return_form_data.remarks}
+                                {
+                                  request.assignment_details.return_form_data
+                                    .remarks
+                                }
                               </span>
                             </div>
                           )}
+                        </div>
+                      </div>
+                    )}
+
+                  {request.assignment_details &&
+                    request.assignment_details.return_request_pending && (
+                      <div className="device-request-section">
+                        <h4 className="device-request-section-title">
+                          Return Request
+                        </h4>
+                        <div className="device-request-return-details">
+                          <div className="device-request-return-item">
+                            <span className="device-request-label">
+                              Reason for Return
+                            </span>
+                            <span className="device-request-value">
+                              {request.assignment_details.return_request_reason}
+                            </span>
+                          </div>
+                          <div className="device-request-return-item">
+                            <span className="device-request-label">
+                              Device Remarks
+                            </span>
+                            <span className="device-request-value">
+                              {request.assignment_details
+                                .return_request_remarks || "None"}
+                            </span>
+                          </div>
+                          <div className="device-request-return-item">
+                            <span className="device-request-label">
+                              Submitted Date
+                            </span>
+                            <span className="device-request-value">
+                              {request.assignment_details
+                                .return_request_submitted_at
+                                ? new Date(
+                                    request.assignment_details
+                                      .return_request_submitted_at,
+                                  ).toLocaleDateString()
+                                : "N/A"}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -685,7 +917,8 @@ export default function DeviceRequestsView({
                           onClick={() => handleSendForConsent(request)}
                           disabled={isProcessing}
                         >
-                          {isProcessing && processingAction === "send_for_consent"
+                          {isProcessing &&
+                          processingAction === "send_for_consent"
                             ? "Sending..."
                             : "Ask for Consent"}
                         </button>
@@ -700,6 +933,37 @@ export default function DeviceRequestsView({
                         </button>
                       </>
                     )}
+
+                    {request.assignment_details &&
+                      request.assignment_details.return_request_pending && (
+                        <>
+                          <button
+                            className="btn-approve-return"
+                            onClick={() =>
+                              handleApproveReturnRequest(
+                                request.assignment_details.id,
+                                request.id,
+                              )
+                            }
+                            disabled={isProcessing}
+                          >
+                            {isProcessing &&
+                            processingAction === "approve_return_request"
+                              ? "Accepting..."
+                              : "Accept Return"}
+                          </button>
+                          <button
+                            className="btn-reject"
+                            onClick={() => handleRejectClick(request.id)}
+                            disabled={isProcessing}
+                          >
+                            {isProcessing &&
+                            processingAction === "reject_return_request"
+                              ? "Rejecting..."
+                              : "Reject Return"}
+                          </button>
+                        </>
+                      )}
 
                     {(request.status === "consent_pending" ||
                       request.status === "active") &&
@@ -718,7 +982,8 @@ export default function DeviceRequestsView({
                           }
                           disabled={isProcessing}
                         >
-                          {isProcessing && processingAction === "approve_consent"
+                          {isProcessing &&
+                          processingAction === "approve_consent"
                             ? "Verifying..."
                             : "Verify & Grant Device"}
                         </button>
@@ -759,10 +1024,12 @@ export default function DeviceRequestsView({
 
                     {(request.status === "rejected" ||
                       request.status === "returned") && (
-                        <button className="btn-completed" disabled>
-                          {request.status === "rejected" ? "Rejected" : "Completed"}
-                        </button>
-                      )}
+                      <button className="btn-completed" disabled>
+                        {request.status === "rejected"
+                          ? "Rejected"
+                          : "Completed"}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -773,8 +1040,18 @@ export default function DeviceRequestsView({
 
       <PopupModal
         open={rejectReasonModal.open}
-        title="Revoke Device Request"
-        message="Please provide a reason for revoking this device request."
+        title={
+          requests.find((r) => r.id === rejectReasonModal.requestId)
+            ?.assignment_details?.return_request_pending
+            ? "Reject Device Return"
+            : "Revoke Device Request"
+        }
+        message={
+          requests.find((r) => r.id === rejectReasonModal.requestId)
+            ?.assignment_details?.return_request_pending
+            ? "Please provide a reason for rejecting this device return."
+            : "Please provide a reason for revoking this device request."
+        }
         type="warning"
         customContent={
           <textarea

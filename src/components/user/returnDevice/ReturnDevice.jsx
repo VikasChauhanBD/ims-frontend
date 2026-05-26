@@ -15,6 +15,7 @@ export default function ReturnDevice({ onReturned }) {
   const [loading, setLoading] = useState(true);
   const [submittingId, setSubmittingId] = useState(null);
   const [remarksById, setRemarksById] = useState({});
+  const [reasonById, setReasonById] = useState({});
   const [popup, setPopup] = useState({
     open: false,
     title: "",
@@ -57,6 +58,17 @@ export default function ReturnDevice({ onReturned }) {
     const device = assignment.device_details || {};
     const today = new Date().toISOString().split("T")[0];
 
+    const returnReason = reasonById[assignment.id] || "";
+    if (!returnReason.trim()) {
+      setPopup({
+        open: true,
+        title: "Please Provide Reason",
+        message: "Please provide a reason for returning this device.",
+        type: "warning",
+      });
+      return;
+    }
+
     try {
       setSubmittingId(assignment.id);
       await inventoryAPI.submitReturnForm(assignment.id, {
@@ -66,6 +78,7 @@ export default function ReturnDevice({ onReturned }) {
           accessories: "",
           remarks: remarksById[assignment.id] || "",
         },
+        return_reason: returnReason,
         return_images: [],
       });
 
@@ -75,9 +88,9 @@ export default function ReturnDevice({ onReturned }) {
 
       setPopup({
         open: true,
-        title: "Return Submitted",
+        title: "Return Request Submitted",
         message:
-          "Your device return has been submitted. The device is removed from My Devices and a confirmation email has been sent.",
+          "Your device return request has been submitted successfully. The admin will review your request and send you an acceptance or rejection email.",
         type: "success",
       });
 
@@ -111,7 +124,10 @@ export default function ReturnDevice({ onReturned }) {
         <div className="return-device-header">
           <div>
             <h2>Return Device</h2>
-            <p>Submit a device return to remove it from your assigned devices list.</p>
+            <p>
+              Submit a device return request. The admin will review your request
+              and approve or reject it.
+            </p>
           </div>
         </div>
 
@@ -148,23 +164,47 @@ export default function ReturnDevice({ onReturned }) {
                       <span>
                         Assigned{" "}
                         {assignment.assigned_date
-                          ? new Date(assignment.assigned_date).toLocaleDateString()
+                          ? new Date(
+                              assignment.assigned_date,
+                            ).toLocaleDateString()
                           : "recently"}
                       </span>
                     </div>
                   </div>
 
-                  <textarea
-                    className="return-device-remarks"
-                    placeholder="Optional return remarks"
-                    value={remarksById[assignment.id] || ""}
-                    onChange={(event) =>
-                      setRemarksById((prev) => ({
-                        ...prev,
-                        [assignment.id]: event.target.value,
-                      }))
-                    }
-                  />
+                  <div className="return-device-form-section">
+                    <label className="return-device-label">
+                      <span>Reason for Return *</span>
+                      <textarea
+                        className="return-device-reason"
+                        placeholder="Please explain why you want to return this device"
+                        value={reasonById[assignment.id] || ""}
+                        onChange={(event) =>
+                          setReasonById((prev) => ({
+                            ...prev,
+                            [assignment.id]: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                  </div>
+
+                  <div className="return-device-form-section">
+                    <label className="return-device-label">
+                      <span>Device Condition & Remarks</span>
+                      <textarea
+                        className="return-device-remarks"
+                        placeholder="Optional remarks about the device condition"
+                        value={remarksById[assignment.id] || ""}
+                        onChange={(event) =>
+                          setRemarksById((prev) => ({
+                            ...prev,
+                            [assignment.id]: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                  </div>
 
                   <button
                     type="button"

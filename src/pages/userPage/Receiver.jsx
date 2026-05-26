@@ -219,7 +219,9 @@ function Receiver() {
       if (!fetchedDevices.length) fetchedDevices = mockDevices;
       setDevices(fetchedDevices);
 
-      const fetchedInventoryCatalog = Array.isArray(inventoryCatalogResponse.data)
+      const fetchedInventoryCatalog = Array.isArray(
+        inventoryCatalogResponse.data,
+      )
         ? inventoryCatalogResponse.data
         : inventoryCatalogResponse.data.results || [];
       setInventoryCatalog(fetchedInventoryCatalog);

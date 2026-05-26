@@ -16,6 +16,23 @@ const api = axios.create({
   },
 });
 
+// Simple request cache to reduce redundant API calls (5 second TTL)
+const apiCache = new Map();
+const CACHE_DURATION = 5000; // 5 seconds
+
+const getCacheKey = (method, url, params) => {
+  return `${method}:${url}:${JSON.stringify(params || {})}`;
+};
+
+const getCachedResponse = (cacheKey) => {
+  const cached = apiCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.response;
+  }
+  apiCache.delete(cacheKey);
+  return null;
+};
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
@@ -30,9 +47,28 @@ api.interceptors.request.use(
   },
 );
 
+const fetchWithCache = async (method, url, config = {}) => {
+  if (method.toLowerCase() === "get") {
+    const cacheKey = getCacheKey(method, url, config.params);
+    const cached = getCachedResponse(cacheKey);
+    if (cached) {
+      return Promise.resolve(cached);
+    }
+    const response = await api.request({ method, url, ...config });
+    apiCache.set(cacheKey, { timestamp: Date.now(), response });
+    return response;
+  }
+  return api.request({ method, url, ...config });
+};
+
 // Response interceptor to handle token refresh
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.config?.method?.toLowerCase() !== "get") {
+      apiCache.clear();
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
 
@@ -85,7 +121,7 @@ export const authAPI = {
   logout: (data) =>api.post("/auth/logout/", data),
 
   // Get current user
-  getCurrentUser: () => api.get("/auth/me/"),
+  getCurrentUser: () => fetchWithCache("get", "/auth/me/"),
 
   // Update profile
   updateProfile: (data) => api.patch("/auth/me/", data),
@@ -120,19 +156,19 @@ export const authAPI = {
 // Inventory APIs
 export const inventoryAPI = {
   // Dashboard
-  getDashboardStats: () => api.get("/inventory/dashboard/stats/"),
+  getDashboardStats: () => fetchWithCache("get", "/inventory/dashboard/stats/"),
 
   // Devices
   // getDevices: (params) => api.get("/inventory/devices/", { params }),
   getDevices: (params) =>
-  api.get("/inventory/devices/", {
-    params: { page_size: 1000, ...params },
-  }),
-  getDevice: (id) => api.get(`/inventory/devices/${id}/`),
+    fetchWithCache("get", "/inventory/devices/", {
+      params: { page_size: 1000, ...params },
+    }),
+  getDevice: (id) => fetchWithCache("get", `/inventory/devices/${id}/`),
   createDevice: (data) => api.post("/inventory/devices/", data),
   updateDevice: (id, data) => api.patch(`/inventory/devices/${id}/`, data),
   deleteDevice: (id) => api.delete(`/inventory/devices/${id}/`),
-  getAvailableDevices: () => api.get("/inventory/devices/available/"),
+  getAvailableDevices: () => fetchWithCache("get", "/inventory/devices/available/"),
   markMaintenance: (id) =>
     api.post(`/inventory/devices/${id}/mark_maintenance/`),
   markAvailable: (id) => api.post(`/inventory/devices/${id}/mark_available/`),
@@ -140,11 +176,11 @@ export const inventoryAPI = {
   // Assignments
   // getAssignments: (params) => api.get("/inventory/assignments/", { params }),
   getAssignments: (params) =>
-  api.get("/inventory/assignments/", {
-    params: { page_size: 1000, ...params },
-  }),
+    fetchWithCache("get", "/inventory/assignments/", {
+      params: { page_size: 1000, ...params },
+    }),
 
-  getAssignment: (id) => api.get(`/inventory/assignments/${id}/`),
+  getAssignment: (id) => fetchWithCache("get", `/inventory/assignments/${id}/`),
   createAssignment: (data) => api.post("/inventory/assignments/", data),
   updateAssignment: (id, data) =>
     api.patch(`/inventory/assignments/${id}/`, data),
@@ -157,7 +193,7 @@ export const inventoryAPI = {
     api.post(`/inventory/assignments/${id}/revoke/`, {
       return_notes: notes,
     }),
-  getMyAssignments: () => api.get("/inventory/assignments/my_assignments/"),
+  getMyAssignments: () => fetchWithCache("get", "/inventory/assignments/my_assignments/"),
   submitConsent: (id, data) =>
     api.post(`/inventory/assignments/${id}/submit_consent/`, data),
   approveConsent: (id) =>
@@ -166,10 +202,14 @@ export const inventoryAPI = {
     api.post(`/inventory/assignments/${id}/submit_return_form/`, data),
   approveReturn: (id) =>
     api.post(`/inventory/assignments/${id}/approve_return/`),
+  approveReturnRequest: (id) =>
+    api.post(`/inventory/assignments/${id}/approve_return/`),
+  rejectReturnRequest: (id, reason) =>
+    api.post(`/inventory/assignments/${id}/reject_return_request/`, { rejection_reason: reason }),
 
   // Tickets
-  getTickets: (params) => api.get("/inventory/tickets/", { params }),
-  getTicket: (id) => api.get(`/inventory/tickets/${id}/`),
+  getTickets: (params) => fetchWithCache("get", "/inventory/tickets/", { params }),
+  getTicket: (id) => fetchWithCache("get", `/inventory/tickets/${id}/`),
   createTicket: (data) => api.post("/inventory/tickets/", data),
   updateTicket: (id, data) => api.patch(`/inventory/tickets/${id}/`, data),
   deleteTicket: (id) => api.delete(`/inventory/tickets/${id}/`),
@@ -179,11 +219,11 @@ export const inventoryAPI = {
     api.post(`/inventory/tickets/${id}/assign/`, { assigned_to: employeeId }),
   resolveTicket: (id, notes) =>
     api.post(`/inventory/tickets/${id}/resolve/`, { resolution_notes: notes }),
-  getMyTickets: () => api.get("/inventory/tickets/my_tickets/"),
+  getMyTickets: () => fetchWithCache("get", "/inventory/tickets/my_tickets/"),
 
   // Device requests
-  getDeviceRequests: (params) => api.get("/inventory/device-requests/", { params }),
-  getDeviceRequest: (id) => api.get(`/inventory/device-requests/${id}/`),
+  getDeviceRequests: (params) => fetchWithCache("get", "/inventory/device-requests/", { params }),
+  getDeviceRequest: (id) => fetchWithCache("get", `/inventory/device-requests/${id}/`),
   createDeviceRequest: (data) => api.post("/inventory/device-requests/", data),
   deleteDeviceRequest: (id) => api.delete(`/inventory/device-requests/${id}/`),
   grantDeviceRequest: (id, data = {}) =>
@@ -193,18 +233,24 @@ export const inventoryAPI = {
     api.post(`/inventory/device-requests/${id}/reject/`, { reason }),
   revokeDeviceRequest: (id, reason) =>
     api.post(`/inventory/device-requests/${id}/revoke/`, { reason }),
-  getMyDeviceRequests: () => api.get("/inventory/device-requests/"),
+  getMyDeviceRequests: () => fetchWithCache("get", "/inventory/device-requests/"),
   updateAssignmentCycleImages: (id, data) =>
     api.patch(`/inventory/assignments/${id}/update_cycle_images/`, data),
 
   // Inventory Assets (CSV imported)
   getInventoryAssets: (params) =>
-    api.get("/inventory/inventory-assets/", { params: { page_size: 1000, ...params } }),
-  getInventoryCatalog: (params) =>
-    api.get("/inventory/inventory-assets/catalog/", {
+    fetchWithCache("get", "/inventory/inventory-assets/", {
       params: { page_size: 1000, ...params },
     }),
-  getInventoryAsset: (id) => api.get(`/inventory/inventory-assets/${id}/`),
+  getInventoryCatalog: (params) =>
+    fetchWithCache("get", "/inventory/inventory-assets/catalog/", {
+      params: { page_size: 1000, ...params },
+    }),
+  getMyInventory: () =>
+    fetchWithCache("get", "/inventory/inventory-assets/my_inventory/", {
+      params: { page_size: 1000 },
+    }),
+  getInventoryAsset: (id) => fetchWithCache("get", `/inventory/inventory-assets/${id}/`),
   sendClaimMail: (id) => api.post(`/inventory/inventory-assets/${id}/send_claim_mail/`),
   updateAssignedEmail: (id, data) =>
     api.patch(`/inventory/inventory-assets/${id}/update_email/`, data),
@@ -215,10 +261,10 @@ export const inventoryAPI = {
 export const employeeAPI = {
   // getEmployees: (params) => api.get("/auth/employees/", { params }),
   getEmployees: (params) =>
-  api.get("/auth/employees/", {
-    params: { page_size: 1000, ...params },
-  }),
-  getEmployee: (id) => api.get(`/auth/employees/${id}/`),
+    fetchWithCache("get", "/auth/employees/", {
+      params: { page_size: 1000, ...params },
+    }),
+  getEmployee: (id) => fetchWithCache("get", `/auth/employees/${id}/`),
   createEmployee: (data) => api.post("/auth/employees/", data),
   updateEmployee: (id, data) => api.patch(`/auth/employees/${id}/`, data),
   deleteEmployee: (id) => api.delete(`/auth/employees/${id}/`),

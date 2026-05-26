@@ -208,7 +208,13 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { inventoryAPI } from "../../../services/api";
-import { AlertCircle, CalendarClock, Clock, X } from "lucide-react";
+import {
+  AlertCircle,
+  CalendarClock,
+  CheckCircle,
+  Clock,
+  X,
+} from "lucide-react";
 import { SectionSkeleton } from "../../common/SkeletonView";
 import PopupModal from "../../common/PopupModal";
 import "./MyDevices.css";
@@ -223,11 +229,16 @@ const buildDeviceName = (device = {}) =>
   device.name ||
   "Assigned device";
 
+const getApiResults = (response) =>
+  Array.isArray(response?.data) ? response.data : response?.data?.results || [];
+
 const MyDevices = () => {
   const [assignments, setAssignments] = useState([]);
+  const [inventoryAssets, setInventoryAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [countdowns, setCountdowns] = useState({});
+  const [claimingAssetId, setClaimingAssetId] = useState(null);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [showExtensionForm, setShowExtensionForm] = useState(false);
   const [extensionForm, setExtensionForm] = useState({
@@ -246,7 +257,7 @@ const MyDevices = () => {
   });
 
   useEffect(() => {
-    fetchAssignments();
+    fetchWorkspaceDevices();
     const interval = setInterval(updateCountdowns, 60000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -286,18 +297,22 @@ const MyDevices = () => {
     setCountdowns(newCountdowns);
   };
 
-  const fetchAssignments = async () => {
+  const fetchWorkspaceDevices = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await inventoryAPI.getMyAssignments();
-      const assignmentsList = Array.isArray(res.data)
-        ? res.data
-        : res.data.results || [];
+      const [assignmentsResponse, inventoryResponse] = await Promise.all([
+        inventoryAPI.getMyAssignments(),
+        inventoryAPI.getMyInventory(),
+      ]);
+
+      const assignmentsList = getApiResults(assignmentsResponse);
+      const inventoryList = getApiResults(inventoryResponse);
 
       setAssignments(assignmentsList.length === 0 ? [] : assignmentsList);
+      setInventoryAssets(inventoryList.length === 0 ? [] : inventoryList);
     } catch (err) {
-      console.error("Failed to fetch assignments:", err);
+      console.error("Failed to fetch assigned devices:", err);
       setError(err.message || "Error loading devices");
     } finally {
       setLoading(false);
@@ -332,6 +347,13 @@ const MyDevices = () => {
         (assignment) => !["returned", "lost", "damaged"].includes(assignment.status),
       ),
     [assignments],
+  );
+  const visibleInventoryAssets = useMemo(
+    () =>
+      inventoryAssets.filter((asset) =>
+        ["assigned", "pending_claim", "claimed"].includes(asset.status),
+      ),
+    [inventoryAssets],
   );
 
   const openDetails = (assignment, openExtensionForm = false) => {
@@ -424,6 +446,50 @@ const MyDevices = () => {
     }
   };
 
+  const handleClaimInventoryAsset = async (assetId) => {
+    try {
+      setClaimingAssetId(assetId);
+      const response = await inventoryAPI.claimAsset(assetId);
+      const claimedAsset = response?.data?.asset;
+
+      setInventoryAssets((prev) =>
+        prev.map((asset) =>
+          asset.id === assetId
+            ? {
+                ...asset,
+                ...(claimedAsset || {}),
+                claimed: true,
+                pending_claim: false,
+                status: "claimed",
+                status_display:
+                  claimedAsset?.status_display || getStatusLabel("claimed"),
+              }
+            : asset,
+        ),
+      );
+
+      setPopup({
+        open: true,
+        title: "Device Claimed",
+        message:
+          "Your assigned device has been claimed successfully and will remain visible in My Devices.",
+        type: "success",
+      });
+    } catch (err) {
+      setPopup({
+        open: true,
+        title: "Claim Failed",
+        message:
+          err.response?.data?.error ||
+          err.message ||
+          "We could not claim this device right now.",
+        type: "error",
+      });
+    } finally {
+      setClaimingAssetId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="md-content-section">
@@ -460,6 +526,103 @@ const MyDevices = () => {
   return (
     <>
     <div className="md-content-section">
+      <div className="md-section-header">
+        <div className="md-header-left">
+          <h2>Inventory claims</h2>
+          <p className="md-header-sub">
+            Review devices assigned to your email and claim them here
+          </p>
+        </div>
+        <span className="md-device-count">
+          {visibleInventoryAssets.length}{" "}
+          {visibleInventoryAssets.length === 1 ? "device" : "devices"}
+        </span>
+      </div>
+
+      {visibleInventoryAssets.length === 0 ? (
+        <div className="md-empty md-claim-empty">
+          <p className="md-empty-title">No inventory waiting for claim</p>
+          <p className="md-empty-sub">
+            Devices assigned to your email will appear here with a claim action.
+          </p>
+        </div>
+      ) : (
+        <div className="md-claim-grid">
+          {visibleInventoryAssets.map((asset) => {
+            const isPendingClaim = Boolean(asset.pending_claim && !asset.claimed);
+            const isClaiming = claimingAssetId === asset.id;
+
+            return (
+              <div key={asset.id} className="md-claim-card">
+                <div className="md-claim-card-header">
+                  <div>
+                    <p className="md-claim-eyebrow">{asset.category_display}</p>
+                    <h3>{asset.asset_name}</h3>
+                  </div>
+                  <span
+                    className={`md-claim-status ${
+                      asset.claimed ? "claimed" : isPendingClaim ? "pending" : "assigned"
+                    }`}
+                  >
+                    {asset.claimed ? (
+                      <>
+                        <CheckCircle size={14} /> Claimed
+                      </>
+                    ) : isPendingClaim ? (
+                      <>
+                        <Clock size={14} /> Pending Claim
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle size={14} /> Assigned
+                      </>
+                    )}
+                  </span>
+                </div>
+
+                <div className="md-claim-details">
+                  <div className="md-claim-row">
+                    <span>Serial number</span>
+                    <strong>{asset.serial_number || "Not available"}</strong>
+                  </div>
+                  <div className="md-claim-row">
+                    <span>Assigned to</span>
+                    <strong>{asset.assigned_person_name || "Not available"}</strong>
+                  </div>
+                  <div className="md-claim-row">
+                    <span>Assigned date</span>
+                    <strong>{formatDate(asset.assigned_date)}</strong>
+                  </div>
+                  <div className="md-claim-row">
+                    <span>Condition</span>
+                    <strong>{getStatusLabel(asset.condition)}</strong>
+                  </div>
+                </div>
+
+                <div className="md-card-actions">
+                  {isPendingClaim ? (
+                    <button
+                      type="button"
+                      className="md-action-btn md-action-btn-primary"
+                      onClick={() => handleClaimInventoryAsset(asset.id)}
+                      disabled={isClaiming}
+                    >
+                      {isClaiming ? "Claiming..." : "Claim device"}
+                    </button>
+                  ) : (
+                    <div className="md-inline-success md-claim-note">
+                      {asset.claimed
+                        ? "This device is already claimed and linked to your account."
+                        : "This device is assigned to you and awaiting the next update."}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <div className="md-section-header">
         <div className="md-header-left">
           <h2>Assigned devices</h2>

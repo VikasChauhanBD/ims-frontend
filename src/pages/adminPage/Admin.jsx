@@ -8,6 +8,7 @@ import {
   Ticket,
   Database,
   CheckCircle,
+  RotateCcw,
 } from "lucide-react";
 import Navbar from "../../components/navbar/Navbar";
 import Dashboard from "../../components/admin/dashboard/Dashboard";
@@ -32,7 +33,11 @@ import {
 } from "../../assets/data/mockData";
 import "./Admin.css";
 
-const OCCUPIED_ASSET_STATUSES = new Set(["assigned", "pending_claim", "claimed"]);
+const OCCUPIED_ASSET_STATUSES = new Set([
+  "assigned",
+  "pending_claim",
+  "claimed",
+]);
 
 function Admin() {
   const navigate = useNavigate();
@@ -235,17 +240,54 @@ function Admin() {
       const fetchedDeviceRequests = Array.isArray(deviceRequestsResponse.data)
         ? deviceRequestsResponse.data
         : deviceRequestsResponse.data.results || [];
-      setDeviceRequests(fetchedDeviceRequests);
+
+      // Add return requests from assignments with pending returns
+      const returnRequests = fetchedAssigns
+        .filter((assignment) => assignment.return_request_pending)
+        .map((assignment) => ({
+          id: `return_${assignment.id}`,
+          device_type: assignment.device_details?.device_type || "device",
+          brand: assignment.device_details?.brand || "",
+          model: assignment.device_details?.model || "",
+          reason: assignment.return_request_reason || "Return request",
+          status: "pending",
+          requested_by: assignment.employee,
+          requested_by_details: assignment.employee_details || {
+            full_name: assignment.employee_name,
+            email: assignment.employee_email,
+          },
+          assignment_details: assignment,
+          created_at:
+            assignment.return_request_submitted_at || assignment.assigned_date,
+          updated_at:
+            assignment.return_request_submitted_at || assignment.assigned_date,
+        }));
+
+      const allDeviceRequests = [...fetchedDeviceRequests, ...returnRequests];
+      setDeviceRequests(allDeviceRequests);
+
       if (notifyRequestChanges) {
-        maybeNotifyDeviceRequestChanges(fetchedDeviceRequests);
+        maybeNotifyDeviceRequestChanges(allDeviceRequests);
+        // Show notification for new return requests
+        const newReturnRequests = returnRequests.filter(
+          (r) => !previousPendingDeviceRequestIdsRef.current?.has(r.id),
+        );
+        if (background && newReturnRequests.length > 0) {
+          setPopup({
+            open: true,
+            title: "New Device Return Requests",
+            message: `${newReturnRequests.length} device return request(s) pending approval in Approvals tab.`,
+            type: "warning",
+          });
+        }
       } else {
         previousPendingDeviceRequestIdsRef.current = new Set(
-          fetchedDeviceRequests
+          allDeviceRequests
             .filter((request) => request.status === "pending")
             .map((request) => request.id),
         );
         previousConsentSubmittedRef.current = new Map(
-          fetchedDeviceRequests.map((request) => [
+          allDeviceRequests.map((request) => [
             request.id,
             Boolean(
               request.assignment_details?.consent_form_data &&
@@ -509,10 +551,30 @@ function Admin() {
     [tickets],
   );
 
-  const pendingDeviceRequestCount = useMemo(
+  const returnRequests = useMemo(
     () =>
-      deviceRequests.filter((request) => request.status === "pending").length,
+      deviceRequests.filter(
+        (request) => request.assignment_details?.return_request_pending,
+      ),
     [deviceRequests],
+  );
+
+  const approvalRequests = useMemo(
+    () =>
+      deviceRequests.filter(
+        (request) => !request.assignment_details?.return_request_pending,
+      ),
+    [deviceRequests],
+  );
+
+  const pendingDeviceRequestCount = useMemo(
+    () => approvalRequests.filter((request) => request.status === "pending").length,
+    [approvalRequests],
+  );
+
+  const pendingReturnRequestCount = useMemo(
+    () => returnRequests.filter((request) => request.status === "pending").length,
+    [returnRequests],
   );
 
   const tabs = [
@@ -532,6 +594,12 @@ function Admin() {
       label: "Approvals / Reject",
       icon: CheckCircle,
       badge: pendingDeviceRequestCount,
+    },
+    {
+      id: "return-device",
+      label: "Return Devices",
+      icon: RotateCcw,
+      badge: pendingReturnRequestCount,
     },
   ];
 
@@ -657,14 +725,25 @@ function Admin() {
           />
         )}
 
-        {(activeTab === "approvals" || activeTab === "devicerequests") && (
+        {activeTab === "approvals" && (
           <DeviceRequestsView
-            requests={deviceRequests}
+            requests={approvalRequests}
             setRequests={setDeviceRequests}
             employees={employees}
             onRefresh={() => fetchData({ background: true })}
             title="Approvals / Reject"
             subtitle="Upload latest device images, request consent, verify submissions, and complete grants"
+          />
+        )}
+
+        {activeTab === "return-device" && (
+          <DeviceRequestsView
+            requests={returnRequests}
+            setRequests={setDeviceRequests}
+            employees={employees}
+            onRefresh={() => fetchData({ background: true })}
+            title="Return Device Requests"
+            subtitle="Review and approve or reject user return requests"
           />
         )}
       </div>
