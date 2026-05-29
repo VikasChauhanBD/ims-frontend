@@ -17,6 +17,7 @@ export interface InventoryAsset {
   serial_number: string;
   assigned_person_name: string;
   assigned_email: string | null;
+  desk_number: string | null;
   assigned_user: string | null;
   assigned_user_details: {
     id: string;
@@ -52,6 +53,7 @@ export interface InventoryAssetListItem {
   serial_number: string;
   assigned_person_name: string;
   assigned_email: string | null;
+  desk_number: string | null;
   assigned_user: string | null;
   assigned_user_name: string | null;
   assigned_date: string | null;
@@ -95,6 +97,7 @@ export interface SendClaimEmailRequest {
 
 export interface UpdateEmailRequest {
   assigned_email: string;
+  desk_number?: string;
 }
 
 export interface ClaimDeviceRequest {

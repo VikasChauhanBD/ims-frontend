@@ -687,11 +687,9 @@ function Admin() {
                 throw err;
               }
             }}
-            onUpdateEmail={async (id, email) => {
+            onUpdateEmail={async (id, payload) => {
               try {
-                await inventoryAPI.updateAssignedEmail(id, {
-                  assigned_email: email,
-                });
+                await inventoryAPI.updateAssignedEmail(id, payload);
                 fetchData({ background: true });
               } catch (err) {
                 throw err;

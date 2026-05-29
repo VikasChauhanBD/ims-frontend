@@ -252,6 +252,18 @@ const CATEGORY_META = {
 
 const ITEMS_PER_PAGE = 6;
 
+const getErrorMessage = (error) => {
+  const data = error?.response?.data;
+  if (typeof data?.error === "string") return data.error;
+  if (Array.isArray(data?.desk_number) && data.desk_number[0]) {
+    return data.desk_number[0];
+  }
+  if (Array.isArray(data?.assigned_email) && data.assigned_email[0]) {
+    return data.assigned_email[0];
+  }
+  return error?.message || "Something went wrong";
+};
+
 // ── Mini bar chart component ─────────────────────────────────────────────────
 const MiniBar = ({ data, color }) => {
   const max = Math.max(...data.map((d) => d.value), 1);
@@ -285,6 +297,7 @@ const InventoryDashboard = ({
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [newEmail, setNewEmail] = useState("");
+  const [newDeskNumber, setNewDeskNumber] = useState("");
   const [sendingId, setSendingId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -322,6 +335,7 @@ const InventoryDashboard = ({
         asset.asset_name.toLowerCase().includes(s) ||
         asset.serial_number.toLowerCase().includes(s) ||
         asset.assigned_person_name.toLowerCase().includes(s) ||
+        (asset.desk_number && asset.desk_number.toLowerCase().includes(s)) ||
         (asset.assigned_email &&
           asset.assigned_email.toLowerCase().includes(s));
       const matchStatus =
@@ -380,12 +394,16 @@ const InventoryDashboard = ({
       showToast("No email for this asset", "error");
       return;
     }
+    if (asset.category === "pc" && !asset.desk_number) {
+      showToast("Desk Number is required for PC assets before sending email", "error");
+      return;
+    }
     setSendingId(asset.id);
     try {
       if (onSendMail) await onSendMail(asset.id);
       showToast(`Email sent to ${asset.assigned_email}`);
     } catch (e) {
-      showToast(e.message, "error");
+      showToast(getErrorMessage(e), "error");
     } finally {
       setSendingId(null);
     }
@@ -394,17 +412,26 @@ const InventoryDashboard = ({
   const openEmailModal = (asset) => {
     setSelectedAsset(asset);
     setNewEmail(asset.assigned_email || "");
+    setNewDeskNumber(asset.desk_number || "");
     setShowEmailModal(true);
   };
 
   const handleUpdateEmail = async () => {
     if (!selectedAsset || !newEmail) return;
     try {
-      if (onUpdateEmail) await onUpdateEmail(selectedAsset.id, newEmail);
+      const payload = {
+        assigned_email: newEmail,
+      };
+
+      if (selectedAsset.category === "pc") {
+        payload.desk_number = newDeskNumber;
+      }
+
+      if (onUpdateEmail) await onUpdateEmail(selectedAsset.id, payload);
       setShowEmailModal(false);
       showToast("Email updated successfully!");
     } catch (e) {
-      showToast(e.message, "error");
+      showToast(getErrorMessage(e), "error");
     }
   };
 
@@ -782,6 +809,7 @@ const InventoryDashboard = ({
                       <th>Device Name</th>
                       <th>Serial No.</th>
                       <th>Assigned To</th>
+                      {activeCategory === "pc" && <th>Desk Number</th>}
                       <th>Email</th>
                       <th>Date</th>
                       <th>Claim</th>
@@ -806,6 +834,11 @@ const InventoryDashboard = ({
                         <td className="id-tbl-person">
                           {asset.assigned_person_name}
                         </td>
+                        {activeCategory === "pc" && (
+                          <td className="id-tbl-desk">
+                            {asset.desk_number || "—"}
+                          </td>
+                        )}
                         <td>
                           {asset.assigned_email ? (
                             <a
@@ -861,9 +894,15 @@ const InventoryDashboard = ({
                               className="id-act-btn id-act-mail"
                               onClick={() => handleSendMail(asset)}
                               disabled={
-                                !asset.assigned_email || sendingId === asset.id
+                                !asset.assigned_email ||
+                                sendingId === asset.id ||
+                                (asset.category === "pc" && !asset.desk_number)
                               }
-                              title="Send email"
+                              title={
+                                asset.category === "pc" && !asset.desk_number
+                                  ? "Desk Number required for PC asset"
+                                  : "Send email"
+                              }
                             >
                               {sendingId === asset.id ? (
                                 "…"
@@ -960,6 +999,17 @@ const InventoryDashboard = ({
                 onChange={(e) => setNewEmail(e.target.value)}
                 placeholder="user@company.com"
               />
+              {selectedAsset.category === "pc" && (
+                <>
+                  <label>Desk Number</label>
+                  <input
+                    type="text"
+                    value={newDeskNumber}
+                    onChange={(e) => setNewDeskNumber(e.target.value)}
+                    placeholder="Seat / desk number"
+                  />
+                </>
+              )}
             </div>
             <div className="id-modal-foot">
               <button
@@ -971,7 +1021,10 @@ const InventoryDashboard = ({
               <button
                 className="id-modal-save"
                 onClick={handleUpdateEmail}
-                disabled={!newEmail}
+                disabled={
+                  !newEmail ||
+                  (selectedAsset.category === "pc" && !newDeskNumber.trim())
+                }
               >
                 Update & Send
               </button>
